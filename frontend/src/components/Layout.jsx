@@ -68,15 +68,6 @@ export default function Layout({ children }) {
             })}
           </nav>
 
-          {/* Footer */}
-          <div className="border-t border-border p-4">
-            <p className="text-xs text-muted-foreground">
-              SENA - Centro para la Biodiversidad
-            </p>
-            <p className="text-xs text-muted-foreground">
-              y el Turismo del Amazonas
-            </p>
-          </div>
         </div>
       </aside>
 

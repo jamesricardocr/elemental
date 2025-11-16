@@ -52,7 +52,7 @@ function Sidebar({ parcelas, allParcelas, filters, setFilters, loading, onRefres
   return (
     <div className="sidebar">
       <div className="sidebar-header">
-        <h1>🌳 IAP</h1>
+        <h1>🌳 Elemental</h1>
         <p>Sistema de Gestión de Biomasa</p>
       </div>
 
