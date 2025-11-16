@@ -47,6 +47,21 @@ jobs:
           frontend/dist/ \
           ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/srv/Elemental/frontend/dist/
 
+        # Copiar código fuente del frontend (backup)
+        rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+          --exclude='node_modules' \
+          --exclude='dist' \
+          frontend/src \
+          frontend/public \
+          frontend/index.html \
+          frontend/package.json \
+          frontend/package-lock.json \
+          frontend/vite.config.js \
+          frontend/tailwind.config.js \
+          frontend/postcss.config.js \
+          frontend/jsconfig.json \
+          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/srv/Elemental/frontend/
+
         # Copiar archivos del backend y configuración
         rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
           src \
