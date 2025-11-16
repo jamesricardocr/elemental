@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
+import { loadGoogleMapsScript } from '../utils/loadGoogleMaps'
 import './MapView.css'
 
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 const LETICIA_LAT = -4.2156
 const LETICIA_LNG = -69.9406
 
@@ -24,11 +24,14 @@ function MapView({ parcelas, parcelaSeleccionada, puntosReferencia = [], zonaSel
   useEffect(() => {
     console.log('Iniciando inicialización de Google Maps...')
 
-    const initializeMap = () => {
-      if (mapRef.current && !mapInstanceRef.current && window.google && window.google.maps) {
-        console.log('Creando instancia del mapa...')
+    const initializeMap = async () => {
+      try {
+        // Cargar Google Maps
+        await loadGoogleMapsScript()
 
-        try {
+        if (mapRef.current && !mapInstanceRef.current && window.google && window.google.maps) {
+          console.log('Creando instancia del mapa...')
+
           mapInstanceRef.current = new window.google.maps.Map(mapRef.current, {
             center: { lat: LETICIA_LAT, lng: LETICIA_LNG },
             zoom: 12,
@@ -50,29 +53,17 @@ function MapView({ parcelas, parcelaSeleccionada, puntosReferencia = [], zonaSel
 
           console.log('Mapa creado exitosamente')
           setMapLoaded(true)
-        } catch (error) {
-          console.error('Error creando mapa:', error)
         }
+      } catch (error) {
+        console.error('Error inicializando Google Maps:', error)
       }
     }
 
-    // Esperar a que Google Maps esté disponible
-    if (window.google && window.google.maps) {
-      console.log('Google Maps ya está cargado')
-      initializeMap()
-    } else {
-      console.log('Esperando a que Google Maps se cargue...')
-      const checkInterval = setInterval(() => {
-        if (window.google && window.google.maps) {
-          console.log('Google Maps API disponible')
-          clearInterval(checkInterval)
-          initializeMap()
-        }
-      }, 100)
+    initializeMap()
 
-      // Timeout después de 10 segundos
+    return () => {
+      // Cleanup si es necesario
       const timeout = setTimeout(() => {
-        clearInterval(checkInterval)
         if (!window.google || !window.google.maps) {
           console.error('Timeout: Google Maps no se cargó en 10 segundos')
         }

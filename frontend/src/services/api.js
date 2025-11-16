@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://localhost:8000/api/v1'
+// Usar ruta relativa para que funcione con el proxy de Vite
+const API_BASE_URL = '/api/v1'
 
 export async function fetchParcelas(zona = null, estado = null) {
   try {
