@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "your-secret-key-change-in-production-min-32-chars"
 
     # Google Maps
-    GOOGLE_MAPS_API_KEY: str
+    GOOGLE_MAPS_API_KEY: Optional[str] = None
 
     # Cálculos
     CARBON_FACTOR: float = 0.47
