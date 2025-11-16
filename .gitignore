@@ -74,3 +74,13 @@ temp/
 # Reports
 reports/*.pdf
 !reports/.gitkeep
+
+# Deployment
+deploy.tar.gz
+*.tar.gz
+
+# SSH keys (no subir claves privadas)
+*.pem
+*.key
+id_rsa*
+!id_rsa*.pub

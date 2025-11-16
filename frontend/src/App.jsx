@@ -4,7 +4,9 @@ import Dashboard from './pages/dashboard/Dashboard'
 import MapaPage from './pages/mapa/MapaPage'
 import ParcelasPage from './pages/parcelas/ParcelasPage'
 import EspeciesPage from './pages/especies/EspeciesPage'
+import ConfiguracionPage from './pages/configuracion/ConfiguracionPage'
 import { Toaster } from './components/ui/sonner'
+import { ThemeProvider } from './contexts/ThemeContext'
 
 // Import existing pages
 import AnalisisSatelital from './pages/AnalisisSatelital'
@@ -35,29 +37,31 @@ const PlaceholderPage = ({ title }) => (
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        {/* Ruta sin Layout - Solo análisis satelital usa la vista completa antigua */}
-        <Route path="/analisis-satelital/:parcelaId" element={<AnalisisSatelital />} />
+    <ThemeProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Ruta sin Layout - Solo análisis satelital usa la vista completa antigua */}
+          <Route path="/analisis-satelital/:codigo" element={<AnalisisSatelital />} />
 
-        {/* Todas las demás rutas usan el nuevo Layout */}
-        <Route path="/*" element={
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/mapa" element={<MapaPage />} />
-              <Route path="/parcelas" element={<ParcelasPage />} />
-              <Route path="/parcelas/:codigo" element={<DetalleParcelaPage />} />
-              <Route path="/especies" element={<EspeciesPage />} />
-              <Route path="/configuracion" element={<PlaceholderPage title="Configuración del Sistema" />} />
-              <Route path="*" element={<PlaceholderPage title="Página No Encontrada" />} />
-            </Routes>
-          </Layout>
-        } />
-      </Routes>
-      <Toaster />
-    </BrowserRouter>
+          {/* Todas las demás rutas usan el nuevo Layout */}
+          <Route path="/*" element={
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/mapa" element={<MapaPage />} />
+                <Route path="/parcelas" element={<ParcelasPage />} />
+                <Route path="/parcelas/:codigo" element={<DetalleParcelaPage />} />
+                <Route path="/especies" element={<EspeciesPage />} />
+                <Route path="/configuracion" element={<ConfiguracionPage />} />
+                <Route path="*" element={<PlaceholderPage title="Página No Encontrada" />} />
+              </Routes>
+            </Layout>
+          } />
+        </Routes>
+        <Toaster />
+      </BrowserRouter>
+    </ThemeProvider>
   )
 }
 

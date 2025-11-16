@@ -118,7 +118,6 @@ const DetalleParcela = ({ codigo, parcelaId, onVolver }) => {
           </div>
           <Badge
             variant={parcela.estado === 'activa' ? 'default' : 'secondary'}
-            className={parcela.estado === 'activa' ? 'bg-green-600' : ''}
           >
             {parcela.estado}
           </Badge>
@@ -300,7 +299,7 @@ const DetalleParcela = ({ codigo, parcelaId, onVolver }) => {
         {tabActiva === 'satelital' && (
           <HistorialSatelital
             parcelaId={parcela.id}
-            onNuevoAnalisis={() => navigate(`/analisis-satelital/${parcela.id}`)}
+            onNuevoAnalisis={() => navigate(`/analisis-satelital/${parcela.codigo}`)}
           />
         )}
       </div>

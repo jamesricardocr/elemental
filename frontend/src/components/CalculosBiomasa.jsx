@@ -1,303 +1,460 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react'
 import {
   ejecutarCalculoBiomasa,
   getCalculosParcela
-} from '../services/api';
+} from '../services/api'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Calculator,
+  Plus,
+  X,
+  TreeDeciduous,
+  Sprout,
+  Leaf,
+  Weight,
+  BarChart3,
+  Gem,
+  Info,
+  Loader2
+} from 'lucide-react'
+import { toast } from 'sonner'
 
 const CalculosBiomasa = ({ parcelaId }) => {
-  const [calculos, setCalculos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [ejecutando, setEjecutando] = useState(false);
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [calculos, setCalculos] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [ejecutando, setEjecutando] = useState(false)
+  const [mostrarFormulario, setMostrarFormulario] = useState(false)
 
   const [parametrosCalculo, setParametrosCalculo] = useState({
     modelo_alometrico: 'chave2014',
     factor_carbono: '0.47'
-  });
+  })
 
   useEffect(() => {
-    cargarCalculos();
-  }, [parcelaId]);
+    cargarCalculos()
+  }, [parcelaId])
 
   const cargarCalculos = async () => {
     try {
-      setLoading(true);
-      const data = await getCalculosParcela(parcelaId);
-      setCalculos(data);
-      setError(null);
+      setLoading(true)
+      const data = await getCalculosParcela(parcelaId)
+      setCalculos(data)
+      setError(null)
     } catch (err) {
-      console.error('Error al cargar cálculos:', err);
-      setError('Error al cargar los cálculos de biomasa');
+      console.error('Error al cargar cálculos:', err)
+      setError('Error al cargar los cálculos de biomasa')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value } = e.target
     setParametrosCalculo(prev => ({
       ...prev,
       [name]: value
-    }));
-  };
+    }))
+  }
 
   const handleEjecutarCalculo = async (e) => {
-    e.preventDefault();
+    e.preventDefault()
 
-    const factorCarbono = parseFloat(parametrosCalculo.factor_carbono);
+    const factorCarbono = parseFloat(parametrosCalculo.factor_carbono)
     if (factorCarbono <= 0 || factorCarbono > 1) {
-      alert('El factor de carbono debe estar entre 0 y 1 (típicamente 0.47)');
-      return;
+      toast.error('El factor de carbono debe estar entre 0 y 1 (típicamente 0.47)')
+      return
     }
 
     try {
-      setEjecutando(true);
+      setEjecutando(true)
       await ejecutarCalculoBiomasa(
         parcelaId,
         parametrosCalculo.modelo_alometrico,
         factorCarbono
-      );
+      )
 
-      await cargarCalculos();
-      setMostrarFormulario(false);
-      alert('Cálculo ejecutado exitosamente');
+      await cargarCalculos()
+      setMostrarFormulario(false)
+      toast.success('Cálculo ejecutado exitosamente')
     } catch (err) {
-      console.error('Error al ejecutar cálculo:', err);
-      alert('Error al ejecutar el cálculo: ' + (err.response?.data?.detail || err.message));
+      console.error('Error al ejecutar cálculo:', err)
+      toast.error('Error al ejecutar el cálculo: ' + (err.response?.data?.detail || err.message))
     } finally {
-      setEjecutando(false);
+      setEjecutando(false)
     }
-  };
+  }
 
-  const calculoMasReciente = calculos.length > 0 ? calculos[0] : null;
+  const calculoMasReciente = calculos.length > 0 ? calculos[0] : null
 
   if (loading) {
-    return <div className="loading">Cargando cálculos...</div>;
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-32 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    )
   }
 
   if (error) {
-    return <div className="error-message">{error}</div>;
+    return (
+      <Alert variant="destructive">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    )
   }
 
   return (
-    <div className="calculos-biomasa">
+    <div className="space-y-6">
       {/* Información de Modelos */}
-      <div className="modelos-info">
-        <h3>📐 Modelos Alométricos Disponibles</h3>
-        <div className="modelos-grid">
-          <div className="modelo-card">
-            <div className="modelo-nombre">Chave 2014</div>
-            <div className="modelo-descripcion">
-              Modelo estándar para bosques húmedos tropicales.
-              Utiliza DAP, altura y densidad de la madera.
+      <Card className="border-primary/20 bg-primary/5">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Info className="h-4 w-4 text-primary" />
+            Modelos Alométricos Disponibles
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <h4 className="font-semibold text-foreground">Chave 2014</h4>
+              <p className="text-xs text-muted-foreground">
+                Modelo estándar para bosques húmedos tropicales. Utiliza DAP, altura y densidad de la madera.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-semibold text-foreground">IPCC</h4>
+              <p className="text-xs text-muted-foreground">
+                Guías del Panel Intergubernamental sobre Cambio Climático. Factores de conversión para biomasa subterránea.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-semibold text-foreground">IDEAM</h4>
+              <p className="text-xs text-muted-foreground">
+                Metodología del Instituto de Hidrología, Meteorología y Estudios Ambientales de Colombia.
+              </p>
             </div>
           </div>
-          <div className="modelo-card">
-            <div className="modelo-nombre">IPCC</div>
-            <div className="modelo-descripcion">
-              Guías del Panel Intergubernamental sobre Cambio Climático.
-              Factores de conversión para biomasa subterránea.
-            </div>
-          </div>
-          <div className="modelo-card">
-            <div className="modelo-nombre">IDEAM</div>
-            <div className="modelo-descripcion">
-              Metodología del Instituto de Hidrología, Meteorología y
-              Estudios Ambientales de Colombia.
-            </div>
-          </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Botón Ejecutar Cálculo */}
-      <div className="acciones-header">
-        <button
+      {/* Header con botón ejecutar */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-lg font-semibold">Cálculos de Biomasa ({calculos.length})</h3>
+          <p className="text-sm text-muted-foreground">Estimaciones de biomasa y carbono almacenado</p>
+        </div>
+        <Button
           onClick={() => setMostrarFormulario(!mostrarFormulario)}
-          className="btn-calcular"
           disabled={ejecutando}
+          className={mostrarFormulario ? 'bg-destructive hover:bg-destructive/90' : ''}
         >
-          {mostrarFormulario ? '❌ Cancelar' : '🧮 Ejecutar Nuevo Cálculo'}
-        </button>
+          {mostrarFormulario ? (
+            <>
+              <X className="mr-2 h-4 w-4" />
+              Cancelar
+            </>
+          ) : (
+            <>
+              <Calculator className="mr-2 h-4 w-4" />
+              Ejecutar Nuevo Cálculo
+            </>
+          )}
+        </Button>
       </div>
 
       {/* Formulario de Cálculo */}
       {mostrarFormulario && (
-        <div className="formulario-panel">
-          <h3>Ejecutar Cálculo de Biomasa y Carbono</h3>
-          <form onSubmit={handleEjecutarCalculo} className="calculo-form">
-            <div className="form-row">
-              <div className="form-group">
-                <label>Modelo Alométrico *</label>
-                <select
-                  name="modelo_alometrico"
-                  value={parametrosCalculo.modelo_alometrico}
-                  onChange={handleInputChange}
-                  required
-                >
-                  <option value="chave2014">Chave 2014 (Bosques Húmedos Tropicales)</option>
-                  <option value="ipcc">IPCC (Directrices Generales)</option>
-                  <option value="ideam">IDEAM (Metodología Colombia)</option>
-                </select>
+        <Card>
+          <CardHeader>
+            <CardTitle>Ejecutar Cálculo de Biomasa y Carbono</CardTitle>
+            <CardDescription>Configure los parámetros del modelo alométrico</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleEjecutarCalculo} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="modelo_alometrico">
+                    Modelo Alométrico <span className="text-destructive">*</span>
+                  </Label>
+                  <Select
+                    value={parametrosCalculo.modelo_alometrico}
+                    onValueChange={(value) => setParametrosCalculo(prev => ({ ...prev, modelo_alometrico: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="chave2014">Chave 2014 (Bosques Húmedos Tropicales)</SelectItem>
+                      <SelectItem value="ipcc">IPCC (Directrices Generales)</SelectItem>
+                      <SelectItem value="ideam">IDEAM (Metodología Colombia)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="factor_carbono">
+                    Factor de Carbono <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="factor_carbono"
+                    type="number"
+                    step="0.01"
+                    name="factor_carbono"
+                    value={parametrosCalculo.factor_carbono}
+                    onChange={handleInputChange}
+                    placeholder="0.47"
+                    min="0"
+                    max="1"
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">Típicamente 0.47 (47% de la biomasa es carbono)</p>
+                </div>
               </div>
 
-              <div className="form-group">
-                <label>Factor de Carbono *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  name="factor_carbono"
-                  value={parametrosCalculo.factor_carbono}
-                  onChange={handleInputChange}
-                  placeholder="0.47"
-                  min="0"
-                  max="1"
-                  required
-                />
-                <small className="form-help">Típicamente 0.47 (47% de la biomasa es carbono)</small>
+              <Card className="border-muted bg-muted/20">
+                <CardContent className="pt-4">
+                  <h4 className="font-semibold mb-2 flex items-center gap-2">
+                    <Info className="h-4 w-4 text-primary" />
+                    El cálculo incluirá:
+                  </h4>
+                  <ul className="space-y-1 text-sm text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <TreeDeciduous className="h-3 w-3 text-primary" />
+                      Biomasa aérea de árboles (usando modelo seleccionado)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Sprout className="h-3 w-3 text-primary" />
+                      Biomasa subterránea (raíces - factores IPCC)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Leaf className="h-3 w-3 text-accent-foreground" />
+                      Necromasa (gruesa y fina)
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Sprout className="h-3 w-3 text-primary" />
+                      Biomasa herbácea
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <Gem className="h-3 w-3 text-primary" />
+                      Conversión a carbono almacenado (t C/ha)
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+
+              <div className="flex justify-end">
+                <Button type="submit" disabled={ejecutando} className="bg-primary">
+                  {ejecutando ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Calculando...
+                    </>
+                  ) : (
+                    <>
+                      <Calculator className="mr-2 h-4 w-4" />
+                      Ejecutar Cálculo
+                    </>
+                  )}
+                </Button>
               </div>
-            </div>
-
-            <div className="calculo-info">
-              <h4>El cálculo incluirá:</h4>
-              <ul>
-                <li>✓ Biomasa aérea de árboles (usando modelo seleccionado)</li>
-                <li>✓ Biomasa subterránea (raíces - factores IPCC)</li>
-                <li>✓ Necromasa (gruesa y fina)</li>
-                <li>✓ Biomasa herbácea</li>
-                <li>✓ Conversión a carbono almacenado (t C/ha)</li>
-              </ul>
-            </div>
-
-            <div className="form-actions">
-              <button type="submit" className="btn-ejecutar" disabled={ejecutando}>
-                {ejecutando ? '⏳ Calculando...' : '🚀 Ejecutar Cálculo'}
-              </button>
-            </div>
-          </form>
-        </div>
+            </form>
+          </CardContent>
+        </Card>
       )}
 
       {/* Resultado Más Reciente */}
       {calculoMasReciente && (
-        <div className="resultado-principal">
-          <h3>🎯 Resultado Más Reciente</h3>
-          <div className="resultado-meta">
-            <div className="meta-item">
-              <strong>Modelo:</strong> {calculoMasReciente.modelo_alometrico.toUpperCase()}
-            </div>
-            <div className="meta-item">
-              <strong>Factor Carbono:</strong> {calculoMasReciente.factor_carbono}
-            </div>
-            <div className="meta-item">
-              <strong>Fecha:</strong> {new Date(calculoMasReciente.created_at).toLocaleString('es-CO')}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-lg font-semibold">Resultado Más Reciente</h3>
+            <div className="flex gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline">{calculoMasReciente.modelo_alometrico.toUpperCase()}</Badge>
+              <Badge variant="outline">Factor C: {calculoMasReciente.factor_carbono}</Badge>
+              <Badge variant="outline">{new Date(calculoMasReciente.created_at).toLocaleDateString('es-CO')}</Badge>
             </div>
           </div>
 
-          <div className="resultados-grid">
-            <div className="resultado-card biomasa-aerea">
-              <div className="resultado-icon">🌳</div>
-              <div className="resultado-valor">{calculoMasReciente.biomasa_aerea.toFixed(2)} t</div>
-              <div className="resultado-label">Biomasa Aérea</div>
-              <div className="resultado-sublabel">(Árboles)</div>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <TreeDeciduous className="h-4 w-4 text-primary" />
+                  Biomasa Aérea
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{calculoMasReciente.biomasa_aerea.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground mt-1">toneladas (Árboles)</p>
+              </CardContent>
+            </Card>
 
-            <div className="resultado-card biomasa-subterranea">
-              <div className="resultado-icon">🌱</div>
-              <div className="resultado-valor">{calculoMasReciente.biomasa_subterranea.toFixed(2)} t</div>
-              <div className="resultado-label">Biomasa Subterránea</div>
-              <div className="resultado-sublabel">(Raíces)</div>
-            </div>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Sprout className="h-4 w-4 text-primary" />
+                  Biomasa Subterránea
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{calculoMasReciente.biomasa_subterranea.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground mt-1">toneladas (Raíces)</p>
+              </CardContent>
+            </Card>
 
-            <div className="resultado-card necromasa">
-              <div className="resultado-icon">🪵</div>
-              <div className="resultado-valor">{calculoMasReciente.necromasa.toFixed(2)} t</div>
-              <div className="resultado-label">Necromasa</div>
-              <div className="resultado-sublabel">(Biomasa Muerta)</div>
-            </div>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Leaf className="h-4 w-4 text-accent-foreground" />
+                  Necromasa
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{calculoMasReciente.necromasa.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground mt-1">toneladas (Biomasa Muerta)</p>
+              </CardContent>
+            </Card>
 
-            <div className="resultado-card herbaceas">
-              <div className="resultado-icon">🌿</div>
-              <div className="resultado-valor">{calculoMasReciente.herbaceas.toFixed(2)} t</div>
-              <div className="resultado-label">Herbáceas</div>
-              <div className="resultado-sublabel">(Vegetación Herbácea)</div>
-            </div>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Sprout className="h-4 w-4 text-primary" />
+                  Herbáceas
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{calculoMasReciente.herbaceas.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground mt-1">toneladas (Vegetación Herbácea)</p>
+              </CardContent>
+            </Card>
 
-            <div className="resultado-card biomasa-total">
-              <div className="resultado-icon">📊</div>
-              <div className="resultado-valor">{calculoMasReciente.biomasa_total.toFixed(2)} t</div>
-              <div className="resultado-label">Biomasa Total</div>
-              <div className="resultado-sublabel">(0.1 ha)</div>
-            </div>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-primary" />
+                  Biomasa Total
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold">{calculoMasReciente.biomasa_total.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground mt-1">toneladas (0.1 ha)</p>
+              </CardContent>
+            </Card>
 
-            <div className="resultado-card carbono-total destacado">
-              <div className="resultado-icon">💎</div>
-              <div className="resultado-valor">{calculoMasReciente.carbono_total.toFixed(2)} t C</div>
-              <div className="resultado-label">Carbono Total</div>
-              <div className="resultado-sublabel">{(calculoMasReciente.carbono_total * 10).toFixed(2)} t C/ha</div>
-            </div>
+            <Card className="border-primary bg-primary/5">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  <Gem className="h-4 w-4 text-primary" />
+                  Carbono Total
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-primary">{calculoMasReciente.carbono_total.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground mt-1">t C • {(calculoMasReciente.carbono_total * 10).toFixed(2)} t C/ha</p>
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}
+
+      <Separator />
 
       {/* Historial de Cálculos */}
-      {calculos.length > 1 && (
-        <div className="historial-container">
-          <h3>📜 Historial de Cálculos ({calculos.length})</h3>
-          <div className="tabla-scroll">
-            <table className="tabla-historial">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Modelo</th>
-                  <th>Factor C</th>
-                  <th>Biomasa Aérea (t)</th>
-                  <th>Biomasa Subterránea (t)</th>
-                  <th>Necromasa (t)</th>
-                  <th>Herbáceas (t)</th>
-                  <th>Biomasa Total (t)</th>
-                  <th>Carbono (t C)</th>
-                  <th>t C/ha</th>
-                </tr>
-              </thead>
-              <tbody>
-                {calculos.map(calc => (
-                  <tr key={calc.id}>
-                    <td>{new Date(calc.created_at).toLocaleDateString('es-CO')}</td>
-                    <td><span className="badge-modelo">{calc.modelo_alometrico}</span></td>
-                    <td>{calc.factor_carbono}</td>
-                    <td>{calc.biomasa_aerea.toFixed(2)}</td>
-                    <td>{calc.biomasa_subterranea.toFixed(2)}</td>
-                    <td>{calc.necromasa.toFixed(2)}</td>
-                    <td>{calc.herbaceas.toFixed(2)}</td>
-                    <td><strong>{calc.biomasa_total.toFixed(2)}</strong></td>
-                    <td><strong>{calc.carbono_total.toFixed(2)}</strong></td>
-                    <td className="destacado">{(calc.carbono_total * 10).toFixed(2)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+      {calculos.length > 1 ? (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Historial de Cálculos ({calculos.length})</h3>
+          <Card>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Fecha</TableHead>
+                      <TableHead>Modelo</TableHead>
+                      <TableHead>Factor C</TableHead>
+                      <TableHead>B. Aérea (t)</TableHead>
+                      <TableHead>B. Subterránea (t)</TableHead>
+                      <TableHead>Necromasa (t)</TableHead>
+                      <TableHead>Herbáceas (t)</TableHead>
+                      <TableHead>B. Total (t)</TableHead>
+                      <TableHead>Carbono (t C)</TableHead>
+                      <TableHead>t C/ha</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {calculos.map(calc => (
+                      <TableRow key={calc.id}>
+                        <TableCell className="text-xs">
+                          {new Date(calc.created_at).toLocaleDateString('es-CO')}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary" className="text-xs">
+                            {calc.modelo_alometrico}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-xs">{calc.factor_carbono}</TableCell>
+                        <TableCell>{calc.biomasa_aerea.toFixed(2)}</TableCell>
+                        <TableCell>{calc.biomasa_subterranea.toFixed(2)}</TableCell>
+                        <TableCell>{calc.necromasa.toFixed(2)}</TableCell>
+                        <TableCell>{calc.herbaceas.toFixed(2)}</TableCell>
+                        <TableCell className="font-semibold">{calc.biomasa_total.toFixed(2)}</TableCell>
+                        <TableCell className="font-semibold">{calc.carbono_total.toFixed(2)}</TableCell>
+                        <TableCell className="font-bold text-primary">
+                          {(calc.carbono_total * 10).toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         </div>
-      )}
-
-      {calculos.length === 0 && (
-        <div className="empty-state">
-          No hay cálculos de biomasa ejecutados para esta parcela.
-          <br />
-          <br />
-          Para ejecutar un cálculo, primero asegúrese de tener registrados:
-          <ul>
-            <li>Árboles con mediciones de DAP y altura</li>
-            <li>Especies con densidad de madera</li>
-            <li>Necromasa (opcional pero recomendado)</li>
-            <li>Herbáceas (opcional pero recomendado)</li>
-          </ul>
-          Luego haga clic en "Ejecutar Nuevo Cálculo".
-        </div>
-      )}
+      ) : calculos.length === 0 ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Calculator className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-lg font-semibold text-center mb-2">
+              No hay cálculos de biomasa ejecutados
+            </p>
+            <p className="text-sm text-muted-foreground text-center mb-4">
+              Para ejecutar un cálculo, primero asegúrese de tener registrados:
+            </p>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li className="flex items-center gap-2">
+                <TreeDeciduous className="h-4 w-4" />
+                Árboles con mediciones de DAP y altura
+              </li>
+              <li className="flex items-center gap-2">
+                <Info className="h-4 w-4" />
+                Especies con densidad de madera
+              </li>
+              <li className="flex items-center gap-2">
+                <Leaf className="h-4 w-4" />
+                Necromasa (opcional pero recomendado)
+              </li>
+              <li className="flex items-center gap-2">
+                <Sprout className="h-4 w-4" />
+                Herbáceas (opcional pero recomendado)
+              </li>
+            </ul>
+            <p className="text-sm text-muted-foreground text-center mt-4">
+              Luego haga clic en "Ejecutar Nuevo Cálculo"
+            </p>
+          </CardContent>
+        </Card>
+      ) : null}
     </div>
-  );
-};
+  )
+}
 
-export default CalculosBiomasa;
+export default CalculosBiomasa

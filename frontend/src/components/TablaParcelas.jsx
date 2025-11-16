@@ -58,10 +58,10 @@ function TablaParcelas({ parcelas, onParcelaDeleted, onParcelaSelected, onVerDet
 
   const getEstadoBadge = (estado) => {
     const variants = {
-      'activa': { variant: 'default', className: 'bg-green-500 hover:bg-green-600' },
-      'completada': { variant: 'secondary', className: 'bg-blue-500 hover:bg-blue-600' },
+      'activa': { variant: 'default', className: '' },
+      'completada': { variant: 'secondary', className: '' },
       'inactiva': { variant: 'outline', className: '' },
-      'en_proceso': { variant: 'default', className: 'bg-yellow-500 hover:bg-yellow-600' }
+      'en_proceso': { variant: 'default', className: 'bg-accent text-accent-foreground' }
     }
     const config = variants[estado] || variants['inactiva']
     return (

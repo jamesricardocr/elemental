@@ -516,9 +516,6 @@ async def procesar_csv_nasa(
     Procesa el archivo CSV descargado de NASA AppEEARS
     y genera estadísticas, gráficas y cálculos de biomasa/carbono
     """
-    from fastapi import UploadFile, File
-    import csv
-    from io import StringIO
     from datetime import datetime as dt
 
     # Verificar que el cálculo existe

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Loader2 } from 'lucide-react'
 import './MapView.css'
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBs2LGBZyfVdHUuAZlNJpF-SydBHAwdb_k'
@@ -286,8 +287,8 @@ function MapView({ parcelas, parcelaSeleccionada, puntosReferencia = [], zonaSel
       <div ref={mapRef} className="map" />
       {!mapLoaded && (
         <div className="map-loading">
-          <div className="spinner"></div>
-          <p>Cargando mapa...</p>
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="mt-4 text-lg text-foreground">Cargando mapa...</p>
         </div>
       )}
     </div>

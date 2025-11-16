@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { calcularVerticesParcela, calcularDistancia, limitarAlRadio, calcularPuntoDestino } from '../utils/geometryUtils'
-import './MapViewInteractivo.css'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Separator } from '@/components/ui/separator'
+import { Navigation, Compass, RotateCw, Info, ArrowLeft, CheckCircle2, MapPin, Move, Loader2 } from 'lucide-react'
 
 const GOOGLE_MAPS_API_KEY = 'AIzaSyBs2LGBZyfVdHUuAZlNJpF-SydBHAwdb_k'
 const RADIO_MAXIMO = 100 // metros
@@ -359,114 +365,200 @@ function MapViewInteractivo({
   }, [posicionParcela, mapLoaded, modo, puntoReferencia, onPosicionActualizada])
 
   return (
-    <div className="map-interactivo-container">
-      <div ref={mapRef} className="map" />
+    <div className="relative w-full h-full">
+      <div ref={mapRef} className="w-full h-full" />
 
       {!mapLoaded && (
-        <div className="map-loading">
-          <div className="spinner"></div>
-          <p>Cargando mapa...</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background z-10">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+          <p className="text-lg text-foreground">Cargando mapa...</p>
         </div>
       )}
 
       {modo === 'posicionar' && posicionParcela && (
-        <div className="controles-posicionamiento">
-          <div className="info-panel">
-            <div className="info-item">
-              <span className="info-label">Distancia:</span>
-              <span className="info-value">{distanciaActual.toFixed(1)} m</span>
-            </div>
-            <div className="info-item">
-              <span className="info-label">Dirección:</span>
-              <span className="info-value">{anguloActual.toFixed(0)}°</span>
-            </div>
-          </div>
+        <div className="absolute top-4 right-4 w-96 z-10 space-y-3">
+          {/* Panel de información */}
+          <Card className="shadow-2xl">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Move className="h-4 w-4 text-primary" />
+                Posición de la Parcela
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <div className="flex flex-col items-center p-3 bg-muted/50 rounded-lg">
+                  <span className="text-xs text-muted-foreground mb-1">Distancia</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-bold text-primary">{distanciaActual.toFixed(1)}</span>
+                    <span className="text-xs text-muted-foreground">m</span>
+                  </div>
+                </div>
+                <div className="flex flex-col items-center p-3 bg-muted/50 rounded-lg">
+                  <span className="text-xs text-muted-foreground mb-1">Dirección</span>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-2xl font-bold text-primary">{anguloActual.toFixed(0)}</span>
+                    <span className="text-xs text-muted-foreground">°</span>
+                  </div>
+                </div>
+              </div>
 
-          <div className="posicion-controls">
-            <label>Distancia desde punto de referencia (metros)</label>
-            <input
-              type="range"
-              min="0"
-              max={RADIO_MAXIMO}
-              step="1"
-              value={distanciaActual}
-              onChange={(e) => handleDistanciaChange(Number(e.target.value))}
-              className="distancia-slider"
-            />
-            <div className="distancia-buttons">
-              <button onClick={() => handleDistanciaChange(Math.max(0, distanciaActual - 5))}>
-                -5m
-              </button>
-              <button onClick={() => handleDistanciaChange(Math.min(RADIO_MAXIMO, distanciaActual + 5))}>
-                +5m
-              </button>
-              <button onClick={() => handleDistanciaChange(0)}>
-                Centro
-              </button>
-            </div>
-          </div>
+              <Separator className="my-4" />
 
-          <div className="direccion-controls">
-            <label>Dirección (grados desde Norte)</label>
-            <input
-              type="range"
-              min="0"
-              max="360"
-              step="1"
-              value={anguloActual}
-              onChange={(e) => handleAnguloChange(Number(e.target.value))}
-              className="angulo-slider"
-            />
-            <div className="direccion-compass">
-              <button className="compass-btn" onClick={() => handleAnguloChange(0)} title="Norte">↑ N</button>
-              <button className="compass-btn" onClick={() => handleAnguloChange(45)} title="Noreste">↗ NE</button>
-              <button className="compass-btn" onClick={() => handleAnguloChange(90)} title="Este">→ E</button>
-              <button className="compass-btn" onClick={() => handleAnguloChange(135)} title="Sureste">↘ SE</button>
-              <button className="compass-btn" onClick={() => handleAnguloChange(180)} title="Sur">↓ S</button>
-              <button className="compass-btn" onClick={() => handleAnguloChange(225)} title="Suroeste">↙ SW</button>
-              <button className="compass-btn" onClick={() => handleAnguloChange(270)} title="Oeste">← O</button>
-              <button className="compass-btn" onClick={() => handleAnguloChange(315)} title="Noroeste">↖ NO</button>
-            </div>
-          </div>
+              {/* Control de Distancia */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Navigation className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Distancia desde punto de referencia</span>
+                </div>
+                <Slider
+                  value={[distanciaActual]}
+                  onValueChange={(value) => handleDistanciaChange(value[0])}
+                  max={RADIO_MAXIMO}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDistanciaChange(Math.max(0, distanciaActual - 5))}
+                    className="flex-1"
+                  >
+                    -5m
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDistanciaChange(Math.min(RADIO_MAXIMO, distanciaActual + 5))}
+                    className="flex-1"
+                  >
+                    +5m
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleDistanciaChange(0)}
+                    className="flex-1"
+                  >
+                    Centro
+                  </Button>
+                </div>
+              </div>
 
-          <div className="rotacion-controls">
-            <label>Rotación del polígono: {rotacion}°</label>
-            <input
-              type="range"
-              min="0"
-              max="360"
-              value={rotacion}
-              onChange={(e) => onRotacionActualizada(Number(e.target.value))}
-              className="rotacion-slider"
-            />
-            <div className="rotacion-buttons">
-              <button onClick={() => onRotacionActualizada((rotacion - 45 + 360) % 360)}>
-                ↶ -45°
-              </button>
-              <button onClick={() => onRotacionActualizada((rotacion + 45) % 360)}>
-                ↷ +45°
-              </button>
-              <button onClick={() => onRotacionActualizada(0)}>
-                0°
-              </button>
-            </div>
-          </div>
+              <Separator className="my-4" />
 
-          <div className="acciones-posicionamiento">
-            <button className="btn-volver" onClick={onVolver}>
-              ← Volver
-            </button>
-            <button className="btn-confirmar-pos" onClick={onConfirmar}>
-              Confirmar Posición →
-            </button>
-          </div>
+              {/* Control de Dirección */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Compass className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Dirección (desde Norte)</span>
+                </div>
+                <Slider
+                  value={[anguloActual]}
+                  onValueChange={(value) => handleAnguloChange(value[0])}
+                  max={360}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="grid grid-cols-4 gap-2">
+                  <Button size="sm" variant="outline" onClick={() => handleAnguloChange(0)} title="Norte">
+                    ↑ N
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleAnguloChange(45)} title="Noreste">
+                    ↗ NE
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleAnguloChange(90)} title="Este">
+                    → E
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleAnguloChange(135)} title="Sureste">
+                    ↘ SE
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleAnguloChange(180)} title="Sur">
+                    ↓ S
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleAnguloChange(225)} title="Suroeste">
+                    ↙ SW
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleAnguloChange(270)} title="Oeste">
+                    ← O
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => handleAnguloChange(315)} title="Noroeste">
+                    ↖ NO
+                  </Button>
+                </div>
+              </div>
 
-          <div className="instrucciones-posicionamiento">
-            <p>
-              💡 Usa los controles deslizantes para posicionar la parcela con precisión.
+              <Separator className="my-4" />
+
+              {/* Control de Rotación */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <RotateCw className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Rotación del polígono</span>
+                  </div>
+                  <Badge variant="secondary">{rotacion}°</Badge>
+                </div>
+                <Slider
+                  value={[rotacion]}
+                  onValueChange={(value) => onRotacionActualizada(value[0])}
+                  max={360}
+                  step={1}
+                  className="w-full"
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onRotacionActualizada((rotacion - 45 + 360) % 360)}
+                    className="flex-1"
+                  >
+                    ↶ -45°
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onRotacionActualizada((rotacion + 45) % 360)}
+                    className="flex-1"
+                  >
+                    ↷ +45°
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => onRotacionActualizada(0)}
+                    className="flex-1"
+                  >
+                    0°
+                  </Button>
+                </div>
+              </div>
+
+              <Separator className="my-4" />
+
+              {/* Botones de acción */}
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={onVolver} className="flex-1">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Volver
+                </Button>
+                <Button onClick={onConfirmar} className="flex-1">
+                  Confirmar
+                  <CheckCircle2 className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Instrucciones */}
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription className="text-xs">
+              Usa los controles deslizantes para posicionar la parcela con precisión.
               También puedes arrastrar el marcador naranja en el mapa.
-            </p>
-          </div>
+            </AlertDescription>
+          </Alert>
         </div>
       )}
     </div>

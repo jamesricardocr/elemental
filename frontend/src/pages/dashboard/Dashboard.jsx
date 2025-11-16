@@ -174,8 +174,8 @@ export default function Dashboard() {
                 <div className="text-right">
                   <span className={`text-xs px-2 py-1 rounded-full ${
                     parcela.estado === 'activa'
-                      ? 'bg-green-500/20 text-green-400'
-                      : 'bg-yellow-500/20 text-yellow-400'
+                      ? 'bg-primary/20 text-primary'
+                      : 'bg-secondary text-secondary-foreground'
                   }`}>
                     {parcela.estado}
                   </span>

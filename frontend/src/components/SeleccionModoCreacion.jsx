@@ -1,40 +1,93 @@
-import './SeleccionModoCreacion.css'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { FileText, Map, Check } from 'lucide-react'
 
 function SeleccionModoCreacion({ onModoSeleccionado, onCancelar }) {
   return (
-    <div className="modal-overlay">
-      <div className="modo-creacion-dialog">
-        <h2>Crear Nueva Parcela</h2>
-        <p>Selecciona el modo de creación:</p>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <Card className="w-full max-w-4xl">
+        <CardHeader>
+          <CardTitle className="text-2xl">Crear Nueva Parcela</CardTitle>
+          <CardDescription>Selecciona el modo de creación que prefieras:</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Modo Manual */}
+            <Card
+              className="cursor-pointer transition-all hover:border-primary hover:shadow-lg group"
+              onClick={() => onModoSeleccionado('manual')}
+            >
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <FileText className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle className="text-xl">Modo Manual</CardTitle>
+                </div>
+                <CardDescription>
+                  Ingresa las coordenadas y datos manualmente mediante un formulario
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    <span>Coordenadas exactas</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    <span>Control total de datos</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    <span>Ideal para parcelas ya medidas</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
 
-        <div className="modos-container">
-          <div className="modo-card" onClick={() => onModoSeleccionado('manual')}>
-            <div className="modo-icon">📝</div>
-            <h3>Modo Manual</h3>
-            <p>Ingresa las coordenadas y datos manualmente mediante un formulario</p>
-            <ul>
-              <li>Coordenadas exactas</li>
-              <li>Control total de datos</li>
-              <li>Ideal para parcelas ya medidas</li>
-            </ul>
+            {/* Modo Interactivo */}
+            <Card
+              className="cursor-pointer transition-all hover:border-primary hover:shadow-lg group"
+              onClick={() => onModoSeleccionado('interactivo')}
+            >
+              <CardHeader>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <Map className="h-6 w-6 text-primary" />
+                  </div>
+                  <CardTitle className="text-xl">Modo Interactivo</CardTitle>
+                </div>
+                <CardDescription>
+                  Coloca la parcela visualmente en el mapa usando puntos de referencia
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    <span>Selección visual</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    <span>Polígono de 0.1 ha (20m × 50m)</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-primary" />
+                    <span>Posicionamiento alrededor de punto de referencia</span>
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
           </div>
 
-          <div className="modo-card" onClick={() => onModoSeleccionado('interactivo')}>
-            <div className="modo-icon">🗺️</div>
-            <h3>Modo Interactivo</h3>
-            <p>Coloca la parcela visualmente en el mapa usando puntos de referencia</p>
-            <ul>
-              <li>Selección visual</li>
-              <li>Polígono de 0.1 ha (20m × 50m)</li>
-              <li>Posicionamiento alrededor de punto de referencia</li>
-            </ul>
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={onCancelar}>
+              Cancelar
+            </Button>
           </div>
-        </div>
-
-        <button className="btn-cancelar" onClick={onCancelar}>
-          Cancelar
-        </button>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

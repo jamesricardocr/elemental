@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import SelectorPuntoReferencia from './SelectorPuntoReferencia'
 import ConfirmacionParcela from './ConfirmacionParcela'
 import MapViewInteractivo from './MapViewInteractivo'
-import './ParcelaInteractiva.css'
 
 function ParcelaInteractiva({
   zona,
@@ -50,9 +49,9 @@ function ParcelaInteractiva({
   }
 
   return (
-    <div className="parcela-interactiva-container">
+    <div className="w-full h-full relative">
       {paso === 1 && (
-        <div className="map-with-selector">
+        <div className="w-full h-full relative">
           <MapViewInteractivo
             puntosReferencia={puntosReferencia}
             puntoReferencia={null}
@@ -85,7 +84,7 @@ function ParcelaInteractiva({
       )}
 
       {paso === 3 && (
-        <div className="map-with-confirmacion">
+        <div className="w-full h-full relative">
           <MapViewInteractivo
             puntosReferencia={puntosReferencia}
             puntoReferencia={puntoReferencia}

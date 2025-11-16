@@ -1,13 +1,38 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { getParcela, crearCalculoSatelital, getEstadoCalculoSatelital, subirCSVNasa } from '../services/api';
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { fetchParcelas, crearCalculoSatelital, getEstadoCalculoSatelital, subirCSVNasa } from '../services/api'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Progress } from '@/components/ui/progress'
+import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import {
+  ArrowLeft,
+  Satellite,
+  Loader2,
+  Upload,
+  CheckCircle2,
+  XCircle,
+  Info,
+  ExternalLink,
+  Sprout,
+  Leaf,
+  TreeDeciduous,
+  Gem
+} from 'lucide-react'
+import { toast } from 'sonner'
 
 const AnalisisSatelital = () => {
-  const { parcelaId } = useParams();
-  const navigate = useNavigate();
+  const { codigo } = useParams()
+  const navigate = useNavigate()
 
-  const [parcela, setParcela] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [parcela, setParcela] = useState(null)
+  const [loading, setLoading] = useState(true)
 
   const [configuracion, setConfiguracion] = useState({
     periodo: '90dias',
@@ -15,570 +40,645 @@ const AnalisisSatelital = () => {
     fechaFin: '',
     modeloEstimacion: 'NDVI_Foody2003',
     factorCarbono: 0.47
-  });
+  })
 
-  const [estado, setEstado] = useState('configuracion'); // 'configuracion', 'esperando_csv', 'procesando', 'completado', 'error'
-  const [calculoId, setCalculoId] = useState(null);
-  const [progreso, setProgreso] = useState(0);
-  const [mensaje, setMensaje] = useState('');
-  const [errorDetalle, setErrorDetalle] = useState('');
-  const [resultados, setResultados] = useState(null);
-  const [archivoCSV, setArchivoCSV] = useState(null);
-  const [subiendoCSV, setSubiendoCSV] = useState(false);
+  const [estado, setEstado] = useState('configuracion') // 'configuracion', 'esperando_csv', 'procesando', 'completado', 'error'
+  const [calculoId, setCalculoId] = useState(null)
+  const [progreso, setProgreso] = useState(0)
+  const [mensaje, setMensaje] = useState('')
+  const [errorDetalle, setErrorDetalle] = useState('')
+  const [resultados, setResultados] = useState(null)
+  const [archivoCSV, setArchivoCSV] = useState(null)
+  const [subiendoCSV, setSubiendoCSV] = useState(false)
 
-  // Cargar datos de la parcela
   useEffect(() => {
     const cargarParcela = async () => {
       try {
-        const data = await getParcela(parcelaId);
-        setParcela(data);
+        const parcelas = await fetchParcelas()
+        const parcelaEncontrada = parcelas.find(p => p.codigo === codigo)
 
-        // Inicializar fechas al cargar
-        const fechas = calcularFechas('90dias');
+        if (!parcelaEncontrada) {
+          setLoading(false)
+          return
+        }
+
+        setParcela(parcelaEncontrada)
+
+        const fechas = calcularFechas('90dias')
         setConfiguracion(prev => ({
           ...prev,
           fechaInicio: fechas.inicio,
           fechaFin: fechas.fin
-        }));
+        }))
 
-        setLoading(false);
+        setLoading(false)
       } catch (error) {
-        console.error('Error al cargar parcela:', error);
-        setLoading(false);
+        console.error('Error al cargar parcela:', error)
+        setLoading(false)
       }
-    };
+    }
 
-    cargarParcela();
-  }, [parcelaId]);
+    cargarParcela()
+  }, [codigo])
 
-  // Calcular fechas automáticamente según el periodo seleccionado
   const calcularFechas = (periodo) => {
-    const hoy = new Date();
-    let fechaInicio = new Date();
+    const hoy = new Date()
+    let fechaInicio = new Date()
 
     switch (periodo) {
       case '30dias':
-        fechaInicio.setDate(hoy.getDate() - 30);
-        break;
+        fechaInicio.setDate(hoy.getDate() - 30)
+        break
       case '90dias':
-        fechaInicio.setDate(hoy.getDate() - 90);
-        break;
+        fechaInicio.setDate(hoy.getDate() - 90)
+        break
       case '6meses':
-        fechaInicio.setMonth(hoy.getMonth() - 6);
-        break;
+        fechaInicio.setMonth(hoy.getMonth() - 6)
+        break
       case '1ano':
-        fechaInicio.setFullYear(hoy.getFullYear() - 1);
-        break;
+        fechaInicio.setFullYear(hoy.getFullYear() - 1)
+        break
       case 'personalizado':
-        return { inicio: '', fin: '' };
+        return { inicio: '', fin: '' }
       default:
-        fechaInicio.setDate(hoy.getDate() - 90);
+        fechaInicio.setDate(hoy.getDate() - 90)
     }
 
     return {
       inicio: fechaInicio.toISOString().split('T')[0],
       fin: hoy.toISOString().split('T')[0]
-    };
-  };
+    }
+  }
 
-  const handlePeriodoChange = (e) => {
-    const periodo = e.target.value;
-    const fechas = calcularFechas(periodo);
+  const handlePeriodoChange = (value) => {
+    const fechas = calcularFechas(value)
 
     setConfiguracion({
       ...configuracion,
-      periodo,
+      periodo: value,
       fechaInicio: fechas.inicio,
       fechaFin: fechas.fin
-    });
-  };
+    })
+  }
 
   const handleIniciarCalculo = async () => {
     try {
-      setEstado('procesando');
-      setMensaje('Creando solicitud en NASA AppEEARS...');
-      setProgreso(10);
+      setEstado('procesando')
+      setMensaje('Creando solicitud en NASA AppEEARS...')
+      setProgreso(10)
 
-      // Crear el cálculo satelital (o obtener uno cacheado)
       const resultado = await crearCalculoSatelital(
         parcela.id,
         configuracion.fechaInicio,
         configuracion.fechaFin,
         configuracion.modeloEstimacion,
         parseFloat(configuracion.factorCarbono)
-      );
+      )
 
-      setCalculoId(resultado.id);
+      setCalculoId(resultado.id)
 
-      // Si ya está completado (cache hit), mostrar resultados directamente
       if (resultado.estado_procesamiento === 'completado') {
-        setEstado('completado');
-        setProgreso(100);
-        setMensaje('¡Análisis recuperado del caché!');
-        setResultados(resultado);
+        setEstado('completado')
+        setProgreso(100)
+        setMensaje('¡Análisis recuperado del caché!')
+        setResultados(resultado)
       } else if (resultado.estado_procesamiento === 'esperando_csv') {
-        // Nuevo flujo: Esperar que usuario suba CSV
-        setEstado('esperando_csv');
-        setProgreso(50);
-        setMensaje('Tarea creada en NASA. Descarga el CSV y súbelo aquí.');
+        setEstado('esperando_csv')
+        setProgreso(50)
+        setMensaje('Tarea creada en NASA. Descarga el CSV y súbelo aquí.')
       } else {
-        // Si está procesando, iniciar monitoreo
-        setMensaje('Procesando...');
-        setProgreso(30);
-        iniciarMonitoreo(resultado.id);
+        setMensaje('Procesando...')
+        setProgreso(30)
+        iniciarMonitoreo(resultado.id)
       }
 
     } catch (error) {
-      console.error('Error al iniciar cálculo:', error);
-      setEstado('error');
-      setErrorDetalle(error.message || 'Error al iniciar el cálculo satelital');
+      console.error('Error al iniciar cálculo:', error)
+      setEstado('error')
+      setErrorDetalle(error.message || 'Error al iniciar el cálculo satelital')
     }
-  };
+  }
 
   const handleSubirCSV = async () => {
-    if (!archivoCSV || !calculoId) return;
+    if (!archivoCSV || !calculoId) return
 
     try {
-      setSubiendoCSV(true);
-      setMensaje('Procesando archivo CSV...');
+      setSubiendoCSV(true)
+      setMensaje('Procesando archivo CSV...')
 
-      const resultado = await subirCSVNasa(calculoId, archivoCSV);
+      const resultado = await subirCSVNasa(calculoId, archivoCSV)
 
-      // Obtener datos completos del cálculo
-      const calculoCompleto = await fetch(`http://localhost:8000/api/calculos-satelitales/${calculoId}`).then(r => r.json());
+      const calculoCompleto = await fetch(`http://localhost:8000/api/calculos-satelitales/${calculoId}`).then(r => r.json())
 
-      setEstado('completado');
-      setProgreso(100);
-      setMensaje(`¡CSV procesado! ${resultado.puntos_procesados} observaciones satelitales cargadas.`);
-      setResultados(calculoCompleto);
+      setEstado('completado')
+      setProgreso(100)
+      setMensaje(`¡CSV procesado! ${resultado.puntos_procesados} observaciones satelitales cargadas.`)
+      setResultados(calculoCompleto)
 
     } catch (error) {
-      console.error('Error al subir CSV:', error);
-      setEstado('error');
-      setErrorDetalle(error.message || 'Error al procesar el archivo CSV');
+      console.error('Error al subir CSV:', error)
+      setEstado('error')
+      setErrorDetalle(error.message || 'Error al procesar el archivo CSV')
     } finally {
-      setSubiendoCSV(false);
+      setSubiendoCSV(false)
     }
-  };
+  }
 
   const iniciarMonitoreo = (id) => {
     const intervalo = setInterval(async () => {
       try {
-        const estadoActual = await getEstadoCalculoSatelital(id);
+        const estadoActual = await getEstadoCalculoSatelital(id)
 
-        setProgreso(estadoActual.progreso_pct || 50);
-        setMensaje(estadoActual.mensaje || 'Procesando...');
+        setProgreso(estadoActual.progreso_pct || 50)
+        setMensaje(estadoActual.mensaje || 'Procesando...')
 
         if (estadoActual.estado_procesamiento === 'completado') {
-          clearInterval(intervalo);
-          // Obtener el cálculo completo con todos los datos
-          const calculoCompleto = await fetch(`http://localhost:8000/api/calculos-satelitales/${id}`).then(r => r.json());
-          setEstado('completado');
-          setProgreso(100);
-          setMensaje('¡Cálculo completado exitosamente!');
-          setResultados(calculoCompleto);
+          clearInterval(intervalo)
+          const calculoCompleto = await fetch(`http://localhost:8000/api/calculos-satelitales/${id}`).then(r => r.json())
+          setEstado('completado')
+          setProgreso(100)
+          setMensaje('¡Cálculo completado exitosamente!')
+          setResultados(calculoCompleto)
         } else if (estadoActual.estado_procesamiento === 'error') {
-          clearInterval(intervalo);
-          setEstado('error');
-          setErrorDetalle(estadoActual.error_mensaje || 'Error en el procesamiento');
+          clearInterval(intervalo)
+          setEstado('error')
+          setErrorDetalle(estadoActual.error_mensaje || 'Error en el procesamiento')
         }
       } catch (error) {
-        console.error('Error al verificar estado:', error);
-        clearInterval(intervalo);
-        setEstado('error');
-        setErrorDetalle('Error al verificar el estado del cálculo');
+        console.error('Error al verificar estado:', error)
+        clearInterval(intervalo)
+        setEstado('error')
+        setErrorDetalle('Error al verificar el estado del cálculo')
       }
-    }, 10000); // Verificar cada 10 segundos
+    }, 10000)
 
-    // Limpiar intervalo después de 30 minutos (timeout)
     setTimeout(() => {
-      clearInterval(intervalo);
+      clearInterval(intervalo)
       if (estado === 'procesando') {
-        setEstado('error');
-        setErrorDetalle('Tiempo de espera agotado. El cálculo puede seguir procesándose en segundo plano.');
+        setEstado('error')
+        setErrorDetalle('Tiempo de espera agotado. El cálculo puede seguir procesándose en segundo plano.')
       }
-    }, 30 * 60 * 1000);
-  };
+    }, 30 * 60 * 1000)
+  }
 
   if (loading) {
     return (
-      <div className="analisis-satelital-page">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p>Cargando información de la parcela...</p>
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-7xl mx-auto space-y-4">
+          <Skeleton className="h-12 w-64" />
+          <Skeleton className="h-96 w-full" />
         </div>
       </div>
-    );
+    )
   }
 
   if (!parcela) {
     return (
-      <div className="analisis-satelital-page">
-        <div className="error-container">
-          <h2>Error</h2>
-          <p>No se pudo cargar la información de la parcela.</p>
-          <button className="btn-primary" onClick={() => navigate('/parcelas')}>
+      <div className="min-h-screen bg-background p-6">
+        <div className="max-w-7xl mx-auto">
+          <Alert variant="destructive">
+            <XCircle className="h-4 w-4" />
+            <AlertDescription>
+              No se pudo cargar la información de la parcela.
+            </AlertDescription>
+          </Alert>
+          <Button onClick={() => navigate('/parcelas')} className="mt-4" variant="outline">
+            <ArrowLeft className="mr-2 h-4 w-4" />
             Volver a Parcelas
-          </button>
+          </Button>
         </div>
       </div>
-    );
+    )
   }
 
   return (
-    <div className="analisis-satelital-page">
-      <div className="page-header">
-        <button className="btn-back" onClick={() => navigate('/parcelas')}>
-          ← Volver
-        </button>
-        <h1>🛰️ Análisis Satelital - {parcela.nombre}</h1>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b border-border bg-background px-6 py-4">
+        <div className="max-w-7xl mx-auto">
+          <Button onClick={() => navigate('/parcelas')} variant="outline" size="sm" className="mb-3">
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Volver
+          </Button>
+          <div className="flex items-center gap-3">
+            <Satellite className="h-8 w-8 text-primary" />
+            <div>
+              <h1 className="text-2xl font-bold">Análisis Satelital</h1>
+              <p className="text-sm text-muted-foreground">{parcela.nombre} ({parcela.codigo})</p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="page-content">
-        <div className="main-section">
+      {/* Content */}
+      <div className="p-6">
+        <div className="max-w-7xl mx-auto">
           {estado === 'configuracion' && (
-            <div className="configuracion-form">
-              <div className="info-box">
-                <h4>ℹ️ Acerca de esta funcionalidad</h4>
-                <p>
-                  El análisis satelital utiliza imágenes de satélite (MODIS, Sentinel) de la NASA
-                  para calcular índices de vegetación (NDVI, EVI) y estimar biomasa y carbono
-                  sin necesidad de mediciones de campo.
-                </p>
-                <p>
-                  <strong>Parcela:</strong> {parcela.codigo} - {parcela.nombre}<br/>
-                  <strong>Área:</strong> 0.1 hectáreas (20m × 50m)<br/>
-                  <strong>Coordenadas:</strong> {parcela.latitud?.toFixed(6)}°, {parcela.longitud?.toFixed(6)}°
-                </p>
-              </div>
+            <div className="space-y-6">
+              <Card className="border-primary/20 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Info className="h-4 w-4 text-primary" />
+                    Acerca de esta funcionalidad
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <p>
+                    El análisis satelital utiliza imágenes de satélite (MODIS, Sentinel) de la NASA
+                    para calcular índices de vegetación (NDVI, EVI) y estimar biomasa y carbono
+                    sin necesidad de mediciones de campo.
+                  </p>
+                  <div className="grid grid-cols-3 gap-4 pt-2">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Parcela</p>
+                      <p className="font-medium">{parcela.codigo} - {parcela.nombre}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Área</p>
+                      <p className="font-medium">0.1 hectáreas (20m × 50m)</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Coordenadas</p>
+                      <p className="font-medium">{parcela.latitud?.toFixed(6)}°, {parcela.longitud?.toFixed(6)}°</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-              <div className="form-group">
-                <label>Periodo de Análisis</label>
-                <select
-                  value={configuracion.periodo}
-                  onChange={handlePeriodoChange}
-                  className="form-control"
-                >
-                  <option value="30dias">Últimos 30 días</option>
-                  <option value="90dias">Últimos 90 días (recomendado)</option>
-                  <option value="6meses">Últimos 6 meses</option>
-                  <option value="1ano">Último año</option>
-                  <option value="personalizado">Periodo personalizado</option>
-                </select>
-              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Configuración del Análisis</CardTitle>
+                  <CardDescription>Configure los parámetros para el análisis satelital</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="periodo">Periodo de Análisis</Label>
+                    <Select value={configuracion.periodo} onValueChange={handlePeriodoChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="30dias">Últimos 30 días</SelectItem>
+                        <SelectItem value="90dias">Últimos 90 días (recomendado)</SelectItem>
+                        <SelectItem value="6meses">Últimos 6 meses</SelectItem>
+                        <SelectItem value="1ano">Último año</SelectItem>
+                        <SelectItem value="personalizado">Periodo personalizado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Fecha Inicio</label>
-                  <input
-                    type="date"
-                    value={configuracion.fechaInicio}
-                    onChange={(e) => setConfiguracion({...configuracion, fechaInicio: e.target.value})}
-                    className="form-control"
-                    disabled={configuracion.periodo !== 'personalizado'}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Fecha Fin</label>
-                  <input
-                    type="date"
-                    value={configuracion.fechaFin}
-                    onChange={(e) => setConfiguracion({...configuracion, fechaFin: e.target.value})}
-                    className="form-control"
-                    disabled={configuracion.periodo !== 'personalizado'}
-                  />
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="fechaInicio">Fecha Inicio</Label>
+                      <Input
+                        id="fechaInicio"
+                        type="date"
+                        value={configuracion.fechaInicio}
+                        onChange={(e) => setConfiguracion({...configuracion, fechaInicio: e.target.value})}
+                        disabled={configuracion.periodo !== 'personalizado'}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="fechaFin">Fecha Fin</Label>
+                      <Input
+                        id="fechaFin"
+                        type="date"
+                        value={configuracion.fechaFin}
+                        onChange={(e) => setConfiguracion({...configuracion, fechaFin: e.target.value})}
+                        disabled={configuracion.periodo !== 'personalizado'}
+                      />
+                    </div>
+                  </div>
 
-              <div className="form-group">
-                <label>Modelo de Estimación</label>
-                <select
-                  value={configuracion.modeloEstimacion}
-                  onChange={(e) => setConfiguracion({...configuracion, modeloEstimacion: e.target.value})}
-                  className="form-control"
-                >
-                  <option value="NDVI_Foody2003">NDVI → Biomasa (Foody et al. 2003)</option>
-                  <option value="EVI_Modified">EVI Modificado (bosques densos)</option>
-                  <option value="Combined_Indices">Índices Combinados (NDVI + EVI + LAI)</option>
-                </select>
-                <small className="form-text">
-                  Foody 2003 es el modelo recomendado para bosques tropicales amazónicos
-                </small>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="modelo">Modelo de Estimación</Label>
+                    <Select
+                      value={configuracion.modeloEstimacion}
+                      onValueChange={(value) => setConfiguracion({...configuracion, modeloEstimacion: value})}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="NDVI_Foody2003">NDVI → Biomasa (Foody et al. 2003)</SelectItem>
+                        <SelectItem value="EVI_Modified">EVI Modificado (bosques densos)</SelectItem>
+                        <SelectItem value="Combined_Indices">Índices Combinados (NDVI + EVI + LAI)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-muted-foreground">
+                      Foody 2003 es el modelo recomendado para bosques tropicales amazónicos
+                    </p>
+                  </div>
 
-              <div className="form-group">
-                <label>Factor de Carbono</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0.3"
-                  max="0.6"
-                  value={configuracion.factorCarbono}
-                  onChange={(e) => setConfiguracion({...configuracion, factorCarbono: e.target.value})}
-                  className="form-control"
-                />
-                <small className="form-text">
-                  Factor de conversión de biomasa a carbono (default: 0.47 según IPCC)
-                </small>
-              </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="factorCarbono">Factor de Carbono</Label>
+                    <Input
+                      id="factorCarbono"
+                      type="number"
+                      step="0.01"
+                      min="0.3"
+                      max="0.6"
+                      value={configuracion.factorCarbono}
+                      onChange={(e) => setConfiguracion({...configuracion, factorCarbono: e.target.value})}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Factor de conversión de biomasa a carbono (default: 0.47 según IPCC)
+                    </p>
+                  </div>
 
-              <div className="warning-box">
-                <strong>⏱️ Tiempo estimado:</strong> 10-30 minutos<br/>
-                <strong>📡 Fuente de datos:</strong> NASA AppEEARS (MODIS Terra/Aqua)<br/>
-                <strong>🌍 Resolución:</strong> 250m (adecuada para parcelas de 0.1 ha)
-              </div>
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      <div className="space-y-1 text-xs">
+                        <p><strong>⏱️ Tiempo estimado:</strong> 10-30 minutos</p>
+                        <p><strong>📡 Fuente de datos:</strong> NASA AppEEARS (MODIS Terra/Aqua)</p>
+                        <p><strong>🌍 Resolución:</strong> 250m (adecuada para parcelas de 0.1 ha)</p>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
 
-              <div className="action-buttons">
-                <button className="btn-secondary" onClick={() => navigate('/parcelas')}>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => navigate('/parcelas')}>
                   Cancelar
-                </button>
-                <button
-                  className="btn-primary"
+                </Button>
+                <Button
                   onClick={handleIniciarCalculo}
                   disabled={!configuracion.fechaInicio || !configuracion.fechaFin}
                 >
-                  🚀 Iniciar Análisis
-                </button>
+                  <Satellite className="mr-2 h-4 w-4" />
+                  Iniciar Análisis
+                </Button>
               </div>
             </div>
           )}
 
           {estado === 'esperando_csv' && (
-            <div className="estado-esperando-csv">
-              <div className="success-icon">📡</div>
-              <h3>Tarea Creada en NASA AppEEARS</h3>
-              <p>{mensaje}</p>
+            <div className="space-y-6">
+              <Card>
+                <CardContent className="flex flex-col items-center text-center py-12">
+                  <Satellite className="h-16 w-16 text-primary mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Tarea Creada en NASA AppEEARS</h3>
+                  <p className="text-muted-foreground mb-6">{mensaje}</p>
 
-              <div className="progress-bar">
-                <div className="progress-fill" style={{width: `${progreso}%`}}>
-                  {progreso}%
-                </div>
-              </div>
+                  <Progress value={progreso} className="w-full max-w-md mb-6" />
 
-              <div className="info-box">
-                <h4>📋 Instrucciones:</h4>
-                <ol>
-                  <li>Ve a <a href={`https://appeears.earthdatacloud.nasa.gov/task/${calculoId?.nasa_task_id || ''}`} target="_blank" rel="noopener noreferrer">NASA AppEEARS</a></li>
-                  <li>Espera a que la tarea se complete (10-30 minutos)</li>
-                  <li>Descarga el archivo <strong>MOD13Q1-061-Statistics.csv</strong></li>
-                  <li>Sube el archivo aquí abajo</li>
-                </ol>
-              </div>
+                  <Card className="w-full max-w-2xl bg-muted/20">
+                    <CardHeader>
+                      <CardTitle className="text-base">Instrucciones</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ol className="space-y-2 text-sm text-left">
+                        <li className="flex items-start gap-2">
+                          <Badge variant="outline" className="mt-0.5">1</Badge>
+                          <div>
+                            Ve a{' '}
+                            <a
+                              href={`https://appeears.earthdatacloud.nasa.gov/task/${calculoId?.nasa_task_id || ''}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary hover:underline inline-flex items-center gap-1"
+                            >
+                              NASA AppEEARS <ExternalLink className="h-3 w-3" />
+                            </a>
+                          </div>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Badge variant="outline" className="mt-0.5">2</Badge>
+                          <span>Espera a que la tarea se complete (10-30 minutos)</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Badge variant="outline" className="mt-0.5">3</Badge>
+                          <span>Descarga el archivo <code className="bg-muted px-1 py-0.5 rounded text-xs">MOD13Q1-061-Statistics.csv</code></span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <Badge variant="outline" className="mt-0.5">4</Badge>
+                          <span>Sube el archivo aquí abajo</span>
+                        </li>
+                      </ol>
+                    </CardContent>
+                  </Card>
 
-              <div className="subir-csv-container">
-                <h4>Subir archivo CSV de NASA:</h4>
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={(e) => setArchivoCSV(e.target.files[0])}
-                  className="file-input"
-                />
-                {archivoCSV && (
-                  <p className="archivo-seleccionado">✓ Archivo: {archivoCSV.name}</p>
-                )}
-              </div>
-
-              <div className="action-buttons">
-                <button className="btn-secondary" onClick={() => navigate('/parcelas')}>
-                  Volver a Parcelas
-                </button>
-                <button
-                  className="btn-primary"
-                  onClick={handleSubirCSV}
-                  disabled={!archivoCSV || subiendoCSV}
-                >
-                  {subiendoCSV ? 'Procesando...' : '📤 Procesar CSV'}
-                </button>
-              </div>
+                  <Card className="w-full max-w-2xl mt-6">
+                    <CardHeader>
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Upload className="h-4 w-4" />
+                        Subir archivo CSV de NASA
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <input
+                        type="file"
+                        accept=".csv"
+                        onChange={(e) => setArchivoCSV(e.target.files[0])}
+                        className="block w-full text-sm text-muted-foreground file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer"
+                      />
+                      {archivoCSV && (
+                        <Alert>
+                          <CheckCircle2 className="h-4 w-4 text-primary" />
+                          <AlertDescription>
+                            Archivo seleccionado: <strong>{archivoCSV.name}</strong>
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      <div className="flex gap-3">
+                        <Button variant="outline" onClick={() => navigate('/parcelas')} className="flex-1">
+                          Volver a Parcelas
+                        </Button>
+                        <Button
+                          onClick={handleSubirCSV}
+                          disabled={!archivoCSV || subiendoCSV}
+                          className="flex-1"
+                        >
+                          {subiendoCSV ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Procesando...
+                            </>
+                          ) : (
+                            <>
+                              <Upload className="mr-2 h-4 w-4" />
+                              Procesar CSV
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </CardContent>
+              </Card>
             </div>
           )}
 
           {estado === 'procesando' && (
-            <div className="estado-procesamiento">
-              <div className="loading-spinner"></div>
-              <h3>Procesando</h3>
-              <p>{mensaje}</p>
+            <Card>
+              <CardContent className="flex flex-col items-center text-center py-12">
+                <Loader2 className="h-16 w-16 text-primary animate-spin mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Procesando</h3>
+                <p className="text-muted-foreground mb-6">{mensaje}</p>
 
-              <div className="progress-bar">
-                <div className="progress-fill" style={{width: `${progreso}%`}}>
-                  {progreso}%
-                </div>
-              </div>
+                <Progress value={progreso} className="w-full max-w-md mb-6" />
 
-              <button className="btn-secondary" onClick={() => navigate('/parcelas')}>
-                Volver a Parcelas
-              </button>
-            </div>
+                <Button variant="outline" onClick={() => navigate('/parcelas')}>
+                  Volver a Parcelas
+                </Button>
+              </CardContent>
+            </Card>
           )}
 
           {estado === 'completado' && resultados && (
-            <div className="estado-completado">
-              <div className="success-icon">✅</div>
-              <h3>¡Análisis Completado!</h3>
-              <p>{mensaje}</p>
+            <div className="space-y-6">
+              <Card>
+                <CardContent className="flex flex-col items-center text-center py-8">
+                  <CheckCircle2 className="h-16 w-16 text-primary mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">¡Análisis Completado!</h3>
+                  <p className="text-muted-foreground">{mensaje}</p>
+                </CardContent>
+              </Card>
 
-              <div className="resultados-satelital">
-                <h4>📊 Resultados del Análisis</h4>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Resultados del Análisis</CardTitle>
+                  <CardDescription>
+                    Periodo: {configuracion.fechaInicio} al {configuracion.fechaFin} • Modelo: {configuracion.modeloEstimacion}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-4">
+                    <Card className="border-primary/20 bg-primary/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                          <Sprout className="h-4 w-4 text-primary" />
+                          NDVI
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold">{resultados.ndvi_promedio?.toFixed(3) || 'N/A'}</div>
+                        {resultados.ndvi_min && resultados.ndvi_max && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Rango: {resultados.ndvi_min.toFixed(3)} - {resultados.ndvi_max.toFixed(3)}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
 
-                <div className="resultados-grid">
-                  <div className="resultado-card">
-                    <div className="resultado-header-row">
-                      <div className="resultado-icon">🌱</div>
-                      <div className="resultado-label">NDVI</div>
-                      <div className="info-tooltip">
-                        ℹ️
-                        <span className="tooltip-text">
-                          <strong>NDVI (Índice de Vegetación Normalizado)</strong><br/>
-                          Mide la salud de la vegetación usando luz visible e infrarroja.<br/>
-                          • Rango: 0 (sin vegetación) a 1 (vegetación muy densa)<br/>
-                          • &gt; 0.6: Vegetación saludable<br/>
-                          • 0.2-0.6: Vegetación moderada<br/>
-                          • &lt; 0.2: Suelo desnudo o vegetación escasa
-                        </span>
-                      </div>
-                    </div>
-                    <div className="resultado-valor">
-                      {resultados.ndvi_promedio?.toFixed(3) || 'N/A'}
-                    </div>
-                    {resultados.ndvi_min && resultados.ndvi_max && (
-                      <div className="resultado-rango">
-                        Rango: {resultados.ndvi_min.toFixed(3)} - {resultados.ndvi_max.toFixed(3)}
-                      </div>
-                    )}
+                    <Card className="border-teal-600/20 bg-teal-600/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                          <Leaf className="h-4 w-4 text-teal-600" />
+                          EVI
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold">{resultados.evi_promedio?.toFixed(3) || 'N/A'}</div>
+                        {resultados.evi_min && resultados.evi_max && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Rango: {resultados.evi_min.toFixed(3)} - {resultados.evi_max.toFixed(3)}
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                          <TreeDeciduous className="h-4 w-4 text-primary" />
+                          Biomasa Aérea
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold">{resultados.biomasa_aerea_estimada?.toFixed(2) || 'N/A'}</div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          toneladas
+                          {resultados.biomasa_por_hectarea && ` • ${resultados.biomasa_por_hectarea.toFixed(2)} t/ha`}
+                        </p>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="border-primary bg-primary/5">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm font-medium flex items-center gap-2">
+                          <Gem className="h-4 w-4 text-primary" />
+                          Carbono Almacenado
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-primary">{resultados.carbono_estimado?.toFixed(2) || 'N/A'}</div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          toneladas C
+                          {resultados.carbono_por_hectarea && ` • ${resultados.carbono_por_hectarea.toFixed(2)} t C/ha`}
+                        </p>
+                      </CardContent>
+                    </Card>
                   </div>
 
-                  <div className="resultado-card">
-                    <div className="resultado-header-row">
-                      <div className="resultado-icon">🌿</div>
-                      <div className="resultado-label">EVI</div>
-                      <div className="info-tooltip">
-                        ℹ️
-                        <span className="tooltip-text">
-                          <strong>EVI (Índice de Vegetación Mejorado)</strong><br/>
-                          Similar al NDVI pero optimizado para áreas con vegetación densa.<br/>
-                          • Reduce saturación en bosques tropicales<br/>
-                          • Minimiza influencia de la atmósfera<br/>
-                          • Más preciso en Amazonía que NDVI
-                        </span>
-                      </div>
-                    </div>
-                    <div className="resultado-valor">
-                      {resultados.evi_promedio?.toFixed(3) || 'N/A'}
-                    </div>
-                    {resultados.evi_min && resultados.evi_max && (
-                      <div className="resultado-rango">
-                        Rango: {resultados.evi_min.toFixed(3)} - {resultados.evi_max.toFixed(3)}
-                      </div>
-                    )}
-                  </div>
+                  <Alert className="mt-6">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      Los resultados se han guardado en el historial de la parcela.
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+              </Card>
 
-                  <div className="resultado-card">
-                    <div className="resultado-header-row">
-                      <div className="resultado-icon">🌳</div>
-                      <div className="resultado-label">Biomasa Aérea</div>
-                      <div className="info-tooltip">
-                        ℹ️
-                        <span className="tooltip-text">
-                          <strong>Biomasa Aérea</strong><br/>
-                          Peso seco de toda la vegetación sobre el suelo:<br/>
-                          • Troncos, ramas, hojas, flores y frutos<br/>
-                          • Calculada usando modelo Foody 2003<br/>
-                          • Fórmula: Biomasa = -156.03 + 625.41×NDVI - 415.87×NDVI²<br/>
-                          • Indicador de la cantidad de materia vegetal
-                        </span>
-                      </div>
-                    </div>
-                    <div className="resultado-valor">
-                      {resultados.biomasa_aerea_estimada?.toFixed(2) || 'N/A'}
-                    </div>
-                    <div className="resultado-unidad">toneladas</div>
-                    {resultados.biomasa_por_hectarea && (
-                      <div className="resultado-rango">
-                        {resultados.biomasa_por_hectarea.toFixed(2)} t/ha
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="resultado-card destacado">
-                    <div className="resultado-header-row">
-                      <div className="resultado-icon">💚</div>
-                      <div className="resultado-label">Carbono Almacenado</div>
-                      <div className="info-tooltip">
-                        ℹ️
-                        <span className="tooltip-text">
-                          <strong>Carbono Almacenado</strong><br/>
-                          Cantidad de carbono capturado del CO₂ atmosférico:<br/>
-                          • Carbono = Biomasa × 0.47 (factor IPCC)<br/>
-                          • Representa carbono secuestrado de la atmósfera<br/>
-                          • Fundamental para mitigación del cambio climático<br/>
-                          • Mayor valor = mayor servicio ecosistémico
-                        </span>
-                      </div>
-                    </div>
-                    <div className="resultado-valor">
-                      {resultados.carbono_estimado?.toFixed(2) || 'N/A'}
-                    </div>
-                    <div className="resultado-unidad">toneladas C</div>
-                    {resultados.carbono_por_hectarea && (
-                      <div className="resultado-rango">
-                        {resultados.carbono_por_hectarea.toFixed(2)} t C/ha
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div className="info-completado">
-                  <p><strong>Periodo analizado:</strong> {configuracion.fechaInicio} al {configuracion.fechaFin}</p>
-                  <p><strong>Modelo utilizado:</strong> {configuracion.modeloEstimacion}</p>
-                  <p>Los resultados se han guardado en el historial de la parcela.</p>
-                </div>
-              </div>
-
-              <div className="action-buttons">
-                <button className="btn-secondary" onClick={() => navigate('/parcelas')}>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => navigate('/parcelas')}>
                   Volver a Parcelas
-                </button>
-                <button className="btn-primary" onClick={() => {
-                  setEstado('configuracion');
-                  setResultados(null);
-                }}>
+                </Button>
+                <Button
+                  onClick={() => {
+                    setEstado('configuracion')
+                    setResultados(null)
+                  }}
+                >
                   Realizar Nuevo Análisis
-                </button>
+                </Button>
               </div>
             </div>
           )}
 
           {estado === 'error' && (
-            <div className="estado-error">
-              <div className="error-icon">❌</div>
-              <h3>Error en el Procesamiento</h3>
-              <p className="error-mensaje">{errorDetalle}</p>
+            <div className="space-y-6">
+              <Card>
+                <CardContent className="flex flex-col items-center text-center py-12">
+                  <XCircle className="h-16 w-16 text-destructive mb-4" />
+                  <h3 className="text-xl font-semibold mb-2">Error en el Procesamiento</h3>
+                  <p className="text-muted-foreground mb-6">{errorDetalle}</p>
+                </CardContent>
+              </Card>
 
-              <div className="info-error">
-                <p><strong>Posibles causas:</strong></p>
-                <ul>
-                  <li>No hay imágenes satelitales disponibles para el periodo seleccionado</li>
-                  <li>Exceso de cobertura de nubes (&gt;80%)</li>
-                  <li>Error de conexión con NASA AppEEARS</li>
-                  <li>Credenciales de NASA EarthData expiradas o inválidas</li>
-                </ul>
-                <p>Puedes intentar con un periodo diferente o contactar al administrador del sistema.</p>
-              </div>
+              <Card className="bg-muted/20">
+                <CardHeader>
+                  <CardTitle className="text-base">Posibles causas</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2 text-sm">
+                    <li>• No hay imágenes satelitales disponibles para el periodo seleccionado</li>
+                    <li>• Exceso de cobertura de nubes (&gt;80%)</li>
+                    <li>• Error de conexión con NASA AppEEARS</li>
+                    <li>• Credenciales de NASA EarthData expiradas o inválidas</li>
+                  </ul>
+                  <p className="text-sm text-muted-foreground mt-4">
+                    Puedes intentar con un periodo diferente o contactar al administrador del sistema.
+                  </p>
+                </CardContent>
+              </Card>
 
-              <div className="action-buttons">
-                <button className="btn-secondary" onClick={() => navigate('/parcelas')}>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => navigate('/parcelas')}>
                   Volver a Parcelas
-                </button>
-                <button className="btn-primary" onClick={() => setEstado('configuracion')}>
+                </Button>
+                <Button onClick={() => setEstado('configuracion')}>
                   Reintentar
-                </button>
+                </Button>
               </div>
             </div>
           )}
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AnalisisSatelital;
+export default AnalisisSatelital
