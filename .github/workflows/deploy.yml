@@ -42,20 +42,12 @@ jobs:
           ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
           "mkdir -p /srv/Elemental/frontend/dist"
 
-        # Copiar archivos
+        # Copiar frontend build
         rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-          --exclude='.git' \
-          --exclude='node_modules' \
-          --exclude='venv' \
-          --exclude='__pycache__' \
-          --exclude='.env' \
-          --exclude='iap_database.db' \
-          --exclude='frontend/node_modules' \
-          --exclude='frontend/src' \
-          --exclude='frontend/public' \
           frontend/dist/ \
           ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/srv/Elemental/frontend/dist/
 
+        # Copiar archivos del backend y configuración
         rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
           src \
           config \
