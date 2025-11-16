@@ -10,17 +10,19 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3000,
+    port: 5173,
     host: true,
     allowedHosts: [
       'localhost',
+      'elemental.jc2r.com',
+      '147.93.10.133',
       '.trycloudflare.com',
       '.ngrok-free.dev',
       '.ngrok.io'
     ],
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://elemental-backend:8000',
         changeOrigin: true,
       }
     }

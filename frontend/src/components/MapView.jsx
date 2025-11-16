@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import './MapView.css'
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBs2LGBZyfVdHUuAZlNJpF-SydBHAwdb_k'
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 const LETICIA_LAT = -4.2156
 const LETICIA_LNG = -69.9406
 

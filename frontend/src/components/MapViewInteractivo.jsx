@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
 import { Navigation, Compass, RotateCw, Info, ArrowLeft, CheckCircle2, MapPin, Move, Loader2 } from 'lucide-react'
 
-const GOOGLE_MAPS_API_KEY = 'AIzaSyBs2LGBZyfVdHUuAZlNJpF-SydBHAwdb_k'
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
 const RADIO_MAXIMO = 100 // metros
 
 function MapViewInteractivo({
