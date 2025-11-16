@@ -76,7 +76,6 @@ jobs:
           Dockerfile \
           docker-compose.yml \
           .dockerignore \
-          nginx \
           ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/srv/Elemental/
 
     - name: Deploy with Docker
