@@ -44,9 +44,9 @@ jobs:
           --exclude='__pycache__' \
           --exclude='.env' \
           --exclude='iap_database.db' \
+          --exclude='frontend/node_modules' \
           --exclude='frontend/src' \
           --exclude='frontend/public' \
-          --exclude='frontend/node_modules' \
           frontend/dist \
           src \
           config \
@@ -57,37 +57,31 @@ jobs:
           init_db.py \
           load_puntos_referencia.py \
           .env.example \
+          Dockerfile \
+          docker-compose.yml \
+          .dockerignore \
+          nginx \
           ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/srv/Elemental/
 
-    - name: Run deployment commands
+    - name: Deploy with Docker
       run: |
         ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
           ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'ENDSSH'
           cd /srv/Elemental
 
-          # Setup Python venv if doesn't exist
-          if [ ! -d "venv" ]; then
-            python3 -m venv venv
+          # Crear .env si no existe
+          if [ ! -f ".env" ]; then
+            cp .env.example .env
+            echo "⚠️  Created .env from example - please configure it"
           fi
 
-          # Install Python dependencies
-          source venv/bin/activate
-          pip install --upgrade pip
-          pip install -r requirements.txt
+          # Build y restart con Docker Compose
+          docker-compose down
+          docker-compose build --no-cache
+          docker-compose up -d
 
-          # Initialize database if doesn't exist
-          if [ ! -f "iap_database.db" ]; then
-            python3 init_db.py
-          fi
-
-          # Run migrations
-          python3 migrations/add_calculos_satelitales.py 2>/dev/null || true
-
-          # Restart backend with PM2
-          pm2 restart iap-backend || pm2 start "venv/bin/uvicorn src.api.main:app --host 0.0.0.0 --port 8000" --name iap-backend
-
-          # Reload nginx
-          sudo systemctl reload nginx || echo "nginx reload failed, skipping"
+          # Ver logs
+          docker-compose logs --tail=20
 
           echo "✅ Deployment completed successfully"
         ENDSSH
