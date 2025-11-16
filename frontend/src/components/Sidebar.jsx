@@ -54,6 +54,7 @@ function Sidebar({ parcelas, allParcelas, filters, setFilters, loading, onRefres
       <div className="sidebar-header">
         <h1>🌳 Elemental</h1>
         <p>Sistema de Gestión de Biomasa</p>
+        <p className="text-xs opacity-50">v1.0.0</p>
       </div>
 
       <div className="sidebar-section">
