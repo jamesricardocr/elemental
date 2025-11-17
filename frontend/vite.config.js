@@ -22,7 +22,8 @@ export default defineConfig({
     ],
     proxy: {
       '/api': {
-        target: 'http://elemental-backend:8000',
+        // Auto-detectar entorno: Docker usa 'elemental-backend', local usa 'localhost'
+        target: process.env.VITE_API_URL || 'http://localhost:8000',
         changeOrigin: true,
       }
     }
