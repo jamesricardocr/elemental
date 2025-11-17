@@ -68,7 +68,8 @@ class NASAAppEEARSService:
         vertices: List[List[float]],
         fecha_inicio: date,
         fecha_fin: date,
-        productos: Optional[List[str]] = None
+        productos: Optional[List[str]] = None,
+        codigo_parcela: str = None
     ) -> str:
         """
         Crea una tarea de extracción de datos satelitales
@@ -106,9 +107,15 @@ class NASAAppEEARSService:
         centro_lat = sum(v[0] for v in vertices) / len(vertices)
         centro_lon = sum(v[1] for v in vertices) / len(vertices)
 
+        # Crear nombre descriptivo con código de parcela si está disponible
+        if codigo_parcela:
+            task_name = f'parcela_{codigo_parcela}_id{parcela_id}_{int(time.time())}'
+        else:
+            task_name = f'parcela_id{parcela_id}_{int(time.time())}'
+
         task = {
             'task_type': 'point',  # Cambio a point sample para áreas pequeñas
-            'task_name': f'parcela_{parcela_id}_{int(time.time())}',
+            'task_name': task_name,
             'params': {
                 'dates': [
                     {

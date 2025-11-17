@@ -66,7 +66,8 @@ def procesar_calculo_background(
     fecha_fin,
     modelo_estimacion: str,
     factor_carbono: float,
-    db: Session
+    db: Session,
+    codigo_parcela: str = None
 ):
     """
     Procesa el cálculo satelital en segundo plano
@@ -78,7 +79,11 @@ def procesar_calculo_background(
 
         # Crear tarea en AppEEARS
         task_id = nasa_service.crear_tarea_ndvi(
-            parcela_id, vertices, fecha_inicio, fecha_fin
+            parcela_id,
+            vertices,
+            fecha_inicio,
+            fecha_fin,
+            codigo_parcela=codigo_parcela
         )
 
         # Actualizar con task_id
@@ -340,7 +345,11 @@ async def crear_calculo_satelital(
         try:
             nasa_service = get_nasa_service()
             task_id = nasa_service.crear_tarea_ndvi(
-                request.parcela_id, vertices, request.fecha_inicio, request.fecha_fin
+                request.parcela_id,
+                vertices,
+                request.fecha_inicio,
+                request.fecha_fin,
+                codigo_parcela=parcela.codigo
             )
             calculo.nasa_task_id = task_id
             calculo.estado_procesamiento = 'esperando_csv'
