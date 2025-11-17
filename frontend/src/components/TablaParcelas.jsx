@@ -136,7 +136,7 @@ function TablaParcelas({ parcelas, onParcelaDeleted, onParcelaSelected, onVerDet
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate(`/analisis-satelital/${parcela.id}`)}
+                      onClick={() => navigate(`/parcelas/${parcela.codigo}?tab=satelital`)}
                       title="Análisis Satelital"
                       className="h-8 w-8 p-0"
                     >

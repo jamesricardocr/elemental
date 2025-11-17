@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { getCalculosSatelitalesParcela, deleteCalculoSatelital, getSerieTemporalSatelital, subirCSVNasa } from '../services/api'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import {
   Satellite,
   Plus,
@@ -163,7 +164,8 @@ const HistorialSatelital = ({ parcelaId, onNuevoAnalisis }) => {
   }
 
   return (
-    <div className="space-y-6">
+    <TooltipProvider>
+      <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -283,7 +285,27 @@ const HistorialSatelital = ({ parcelaId, onNuevoAnalisis }) => {
                             <CardTitle className="text-xs font-medium flex items-center gap-2">
                               <Sprout className="h-3 w-3 text-primary" />
                               NDVI
-                              <Info className="h-3 w-3 text-muted-foreground cursor-help" title="Índice de Vegetación Normalizado - mide salud de vegetación" />
+                              <Tooltip delayDuration={100}>
+                                <TooltipTrigger asChild>
+                                  <button type="button" className="inline-flex items-center">
+                                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="space-y-1">
+                                    <p className="font-semibold">Índice de Vegetación Normalizado (NDVI)</p>
+                                    <p className="text-xs">Mide la salud y vigor de la vegetación mediante reflectancia de luz.</p>
+                                    <div className="text-xs mt-2 space-y-0.5">
+                                      <p><strong>Rangos:</strong></p>
+                                      <p>• 0.8 - 1.0: Vegetación muy densa y saludable</p>
+                                      <p>• 0.6 - 0.8: Vegetación moderada a densa</p>
+                                      <p>• 0.4 - 0.6: Vegetación dispersa</p>
+                                      <p>• 0.2 - 0.4: Vegetación escasa</p>
+                                      <p>• &lt; 0.2: Suelo desnudo o agua</p>
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
@@ -301,7 +323,26 @@ const HistorialSatelital = ({ parcelaId, onNuevoAnalisis }) => {
                             <CardTitle className="text-xs font-medium flex items-center gap-2">
                               <Leaf className="h-3 w-3 text-teal-600" />
                               EVI
-                              <Info className="h-3 w-3 text-muted-foreground cursor-help" title="Índice de Vegetación Mejorado - optimizado para bosques densos" />
+                              <Tooltip delayDuration={100}>
+                                <TooltipTrigger asChild>
+                                  <button type="button" className="inline-flex items-center">
+                                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="space-y-1">
+                                    <p className="font-semibold">Índice de Vegetación Mejorado (EVI)</p>
+                                    <p className="text-xs">Optimizado para áreas de alta biomasa como bosques tropicales. Reduce efectos de saturación y ruido atmosférico.</p>
+                                    <div className="text-xs mt-2 space-y-0.5">
+                                      <p><strong>Rangos:</strong></p>
+                                      <p>• 0.6 - 1.0: Bosque tropical denso y saludable</p>
+                                      <p>• 0.4 - 0.6: Vegetación moderada</p>
+                                      <p>• 0.2 - 0.4: Vegetación dispersa o degradada</p>
+                                      <p>• &lt; 0.2: Poca o nula vegetación</p>
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
@@ -319,6 +360,27 @@ const HistorialSatelital = ({ parcelaId, onNuevoAnalisis }) => {
                             <CardTitle className="text-xs font-medium flex items-center gap-2">
                               <TreeDeciduous className="h-3 w-3 text-primary" />
                               Biomasa Aérea
+                              <Tooltip delayDuration={100}>
+                                <TooltipTrigger asChild>
+                                  <button type="button" className="inline-flex items-center">
+                                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="space-y-1">
+                                    <p className="font-semibold">Biomasa Aérea</p>
+                                    <p className="text-xs">Masa total de materia vegetal viva sobre el suelo (troncos, ramas, hojas). Calculada mediante modelos alométricos basados en índices satelitales.</p>
+                                    <div className="text-xs mt-2 space-y-0.5">
+                                      <p><strong>Valores de referencia (t/ha):</strong></p>
+                                      <p>• &gt; 300: Bosque primario tropical muy denso</p>
+                                      <p>• 200 - 300: Bosque maduro bien conservado</p>
+                                      <p>• 100 - 200: Bosque secundario o moderadamente alterado</p>
+                                      <p>• 50 - 100: Vegetación secundaria joven</p>
+                                      <p>• &lt; 50: Vegetación dispersa o áreas degradadas</p>
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
@@ -335,6 +397,28 @@ const HistorialSatelital = ({ parcelaId, onNuevoAnalisis }) => {
                             <CardTitle className="text-xs font-medium flex items-center gap-2">
                               <Gem className="h-3 w-3 text-primary" />
                               Carbono Almacenado
+                              <Tooltip delayDuration={100}>
+                                <TooltipTrigger asChild>
+                                  <button type="button" className="inline-flex items-center">
+                                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-xs">
+                                  <div className="space-y-1">
+                                    <p className="font-semibold">Carbono Almacenado</p>
+                                    <p className="text-xs">Cantidad de carbono atmosférico capturado y fijado en la biomasa vegetal. Aproximadamente el 47% de la biomasa total.</p>
+                                    <div className="text-xs mt-2 space-y-0.5">
+                                      <p><strong>Importancia:</strong> Indicador clave para proyectos de mitigación del cambio climático y servicios ecosistémicos.</p>
+                                      <p className="mt-1"><strong>Valores de referencia (t C/ha):</strong></p>
+                                      <p>• &gt; 140: Bosque primario, alto potencial REDD+</p>
+                                      <p>• 90 - 140: Bosque maduro conservado</p>
+                                      <p>• 50 - 90: Bosque secundario</p>
+                                      <p>• 25 - 50: Vegetación secundaria joven</p>
+                                      <p>• &lt; 25: Bajo almacenamiento de carbono</p>
+                                    </div>
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
                             </CardTitle>
                           </CardHeader>
                           <CardContent>
@@ -601,7 +685,8 @@ const HistorialSatelital = ({ parcelaId, onNuevoAnalisis }) => {
           )}
         </div>
       )}
-    </div>
+      </div>
+    </TooltipProvider>
   )
 }
 
