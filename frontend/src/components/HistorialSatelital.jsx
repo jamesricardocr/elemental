@@ -277,7 +277,7 @@ const HistorialSatelital = ({ parcelaId, onNuevoAnalisis }) => {
                       <Separator />
 
                       {/* Resultados principales */}
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <Card className="border-primary/20 bg-primary/5">
                           <CardHeader className="pb-2">
                             <CardTitle className="text-xs font-medium flex items-center gap-2">

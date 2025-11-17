@@ -570,10 +570,13 @@ async def procesar_csv_nasa(
                     fecha = dt.strptime(date_str, '%Y-%m-%d').date().isoformat()
                     valor = float(mean_value)
 
+                    # MODIS values are scaled by 10000
+                    valor_real = valor / 10000.0
+
                     if 'NDVI' in file_name:
-                        datos_ndvi[fecha] = valor
+                        datos_ndvi[fecha] = valor_real
                     elif 'EVI' in file_name:
-                        datos_evi[fecha] = valor
+                        datos_evi[fecha] = valor_real
                 except:
                     continue
 
@@ -600,10 +603,14 @@ async def procesar_csv_nasa(
                     fecha = dt.strptime(date_str, '%Y-%m-%d').date().isoformat()
 
                     if ndvi_col and row.get(ndvi_col):
-                        datos_ndvi[fecha] = float(row[ndvi_col])
+                        valor_ndvi = float(row[ndvi_col])
+                        # MODIS values are scaled by 10000
+                        datos_ndvi[fecha] = valor_ndvi / 10000.0
 
                     if evi_col and row.get(evi_col):
-                        datos_evi[fecha] = float(row[evi_col])
+                        valor_evi = float(row[evi_col])
+                        # MODIS values are scaled by 10000
+                        datos_evi[fecha] = valor_evi / 10000.0
                 except:
                     continue
         else:
