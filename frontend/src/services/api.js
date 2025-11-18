@@ -136,6 +136,36 @@ export async function getPuntosReferencia(zona = null) {
   }
 }
 
+export async function createPuntoReferencia(puntoData) {
+  const response = await fetch(`${API_BASE_URL}/puntos-referencia/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(puntoData)
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.detail || 'Error creating punto de referencia')
+  }
+
+  return await response.json()
+}
+
+export async function deletePuntoReferencia(puntoId) {
+  const response = await fetch(`${API_BASE_URL}/puntos-referencia/${puntoId}`, {
+    method: 'DELETE'
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.detail || 'Error deleting punto de referencia')
+  }
+
+  return await response.json()
+}
+
 // ============= ESPECIES =============
 export async function createEspecie(especieData) {
   const response = await fetch(`${API_BASE_URL}/especies/`, {
@@ -345,6 +375,23 @@ export async function subirCSVNasa(calculoId, file) {
   if (!response.ok) {
     const error = await response.json()
     throw new Error(error.detail || 'Error subiendo CSV')
+  }
+
+  return await response.json()
+}
+
+export async function crearAnalisisDesdeCSV(parcelaId, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+
+  const response = await fetch(`${API_BASE_URL}/calculos-satelitales/parcela/${parcelaId}/desde-csv`, {
+    method: 'POST',
+    body: formData
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.detail || 'Error al crear análisis desde CSV')
   }
 
   return await response.json()

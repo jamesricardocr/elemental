@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?><gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd" version="1.1">
+  <metadata>
+    <name>Patruyeros Sendero 22 octubre</name>
+    <copyright author="Tracklia app (https://play.google.com/store/apps/details?id=app.tracklia)"/>
+    <time>2025-10-30T01:56:30Z</time>
+  </metadata>
+  <wpt lat="-3.785115" lon="-70.35049">
+    <time>2025-10-22T15:49:00Z</time>
+    <name>Cindy</name>
+    <desc>Palma chapaja</desc>
+  </wpt>
+  <wpt lat="-3.785158" lon="-70.350352">
+    <time>2025-10-22T15:49:33Z</time>
+    <name>Cindy</name>
+    <desc>Árbol pata de gallina</desc>
+  </wpt>
+  <wpt lat="-3.783705" lon="-70.349083">
+    <time>2025-10-22T15:58:01Z</time>
+    <name>Cindy</name>
+    <desc>Hojas de forma corazón y floración forma de flecha</desc>
+  </wpt>
+  <wpt lat="-3.78369" lon="-70.348938">
+    <time>2025-10-22T15:59:11Z</time>
+    <name>Cindy</name>
+    <desc>Papyo bravo</desc>
+  </wpt>
+  <wpt lat="-3.783593" lon="-70.348748">
+    <time>2025-10-22T16:01:03Z</time>
+    <name>Cindy</name>
+    <desc>Palma de colita de bayena</desc>
+  </wpt>
+  <wpt lat="-3.783685" lon="-70.348263">
+    <time>2025-10-22T16:03:38Z</time>
+    <name>Cindy</name>
+    <desc>Planta enredadera</desc>
+  </wpt>
+  <wpt lat="-3.783636" lon="-70.347897">
+    <time>2025-10-22T16:06:21Z</time>
+    <name>Cindy</name>
+    <desc>Árbol ceiba</desc>
+  </wpt>
+  <wpt lat="-3.783642" lon="-70.347707">
+    <time>2025-10-22T16:07:23Z</time>
+    <name>Cindy</name>
+    <desc>Árbol frutal surva</desc>
+  </wpt>
+  <wpt lat="-3.782957" lon="-70.345917">
+    <time>2025-10-22T16:22:34Z</time>
+    <name>Cindy</name>
+    <desc>Árbol maderable Matamata</desc>
+  </wpt>
+  <wpt lat="-3.783787" lon="-70.346057">
+    <time>2025-10-22T16:27:41Z</time>
+    <name>Cindy</name>
+    <desc>Melastomastaciae</desc>
+  </wpt>
+  <wpt lat="-3.784495" lon="-70.346678">
+    <time>2025-10-22T16:37:42Z</time>
+    <name>Cindy</name>
+    <desc>Plantas de hojas moradas alenves y verdes</desc>
+  </wpt>
+  <wpt lat="-3.787302" lon="-70.349733">
+    <time>2025-10-22T16:50:11Z</time>
+    <name>Cindy</name>
+    <desc>Planta orquídea</desc>
+  </wpt>
+  <wpt lat="-3.787734" lon="-70.350546">
+    <time>2025-10-22T16:54:01Z</time>
+    <name>Cindy</name>
+    <desc>Planta bejuco</desc>
+  </wpt>
+  <wpt lat="-3.785115" lon="-70.35049">
+    <time>2025-10-22T15:49:00Z</time>
+    <name>Cindy</name>
+    <desc>Palma chapaja</desc>
+  </wpt>
+</gpx>

@@ -8,6 +8,8 @@ from typing import List
 from datetime import datetime
 import os
 import csv
+import math
+import json
 from io import StringIO
 
 from config.database import get_db
@@ -604,13 +606,13 @@ async def procesar_csv_nasa(
 
                     if ndvi_col and row.get(ndvi_col):
                         valor_ndvi = float(row[ndvi_col])
-                        # MODIS values are scaled by 10000
-                        datos_ndvi[fecha] = valor_ndvi / 10000.0
+                        # NASA AppEEARS ya entrega valores normalizados (0-1)
+                        datos_ndvi[fecha] = valor_ndvi
 
                     if evi_col and row.get(evi_col):
                         valor_evi = float(row[evi_col])
-                        # MODIS values are scaled by 10000
-                        datos_evi[fecha] = valor_evi / 10000.0
+                        # NASA AppEEARS ya entrega valores normalizados (0-1)
+                        datos_evi[fecha] = valor_evi
                 except:
                     continue
         else:
@@ -714,4 +716,202 @@ def listar_productos_disponibles():
         raise HTTPException(
             status_code=500,
             detail=f"Error al obtener productos: {str(e)}"
+        )
+
+
+@router.post("/parcela/{parcela_id}/desde-csv", response_model=CalculoSatelitalResponse, status_code=201)
+async def crear_analisis_desde_csv(
+    parcela_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """
+    Crea un nuevo análisis satelital directamente desde un archivo CSV de NASA AppEEARS.
+
+    Este endpoint permite cargar datos satelitales previamente descargados sin necesidad
+    de crear una tarea en NASA AppEEARS primero.
+    """
+    from datetime import datetime as dt
+
+    # Verificar que la parcela existe
+    parcela = db.query(Parcela).filter(Parcela.id == parcela_id).first()
+    if not parcela:
+        raise HTTPException(status_code=404, detail="Parcela no encontrada")
+
+    try:
+        # Leer archivo CSV
+        contents = await file.read()
+        csv_text = contents.decode('utf-8')
+        csv_reader = csv.DictReader(StringIO(csv_text))
+
+        datos_ndvi = {}
+        datos_evi = {}
+
+        # Detectar formato del CSV
+        rows = list(csv_reader)
+        if len(rows) == 0:
+            raise HTTPException(status_code=400, detail="El archivo CSV está vacío")
+
+        first_row = rows[0]
+
+        # Formato 1: Statistics (File Name, Date, Mean)
+        is_statistics_format = 'File Name' in first_row and 'Mean' in first_row
+
+        # Formato 2: Results (columnas directas con NDVI y EVI)
+        is_results_format = any('NDVI' in key for key in first_row.keys()) and any('EVI' in key for key in first_row.keys())
+
+        if is_statistics_format:
+            # Procesar formato Statistics
+            for row in rows:
+                file_name = row.get('File Name', '')
+                date_str = row.get('Date')
+                mean_value = row.get('Mean')
+
+                if not date_str or not mean_value:
+                    continue
+
+                try:
+                    fecha = dt.strptime(date_str, '%Y-%m-%d').date().isoformat()
+                    valor = float(mean_value)
+                    valor_real = valor / 10000.0  # MODIS scaling
+
+                    if 'NDVI' in file_name:
+                        datos_ndvi[fecha] = valor_real
+                    elif 'EVI' in file_name:
+                        datos_evi[fecha] = valor_real
+                except:
+                    continue
+
+        elif is_results_format:
+            # Procesar formato Results
+            ndvi_col = None
+            evi_col = None
+            for key in first_row.keys():
+                if 'NDVI' in key and '__250m_16_days_NDVI' in key:
+                    ndvi_col = key
+                if 'EVI' in key and '__250m_16_days_EVI' in key:
+                    evi_col = key
+
+            if not ndvi_col or not evi_col:
+                raise HTTPException(status_code=400, detail="No se encontraron columnas NDVI/EVI en el CSV")
+
+            for row in rows:
+                date_str = row.get('Date')
+                if not date_str:
+                    continue
+
+                try:
+                    fecha = dt.strptime(date_str, '%Y-%m-%d').date().isoformat()
+
+                    if ndvi_col and row.get(ndvi_col):
+                        valor_ndvi = float(row[ndvi_col])
+                        # NASA AppEEARS ya entrega valores normalizados (0-1)
+                        datos_ndvi[fecha] = valor_ndvi
+
+                    if evi_col and row.get(evi_col):
+                        valor_evi = float(row[evi_col])
+                        # NASA AppEEARS ya entrega valores normalizados (0-1)
+                        datos_evi[fecha] = valor_evi
+                except:
+                    continue
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Formato de CSV no reconocido. Debe ser formato Statistics o Results de NASA AppEEARS"
+            )
+
+        # Verificar que tengamos datos
+        if not datos_ndvi and not datos_evi:
+            raise HTTPException(status_code=400, detail="No se encontraron datos válidos de NDVI o EVI en el CSV")
+
+        # Determinar fechas de inicio y fin
+        todas_fechas = list(set(list(datos_ndvi.keys()) + list(datos_evi.keys())))
+        todas_fechas.sort()
+
+        if len(todas_fechas) == 0:
+            raise HTTPException(status_code=400, detail="No se pudieron extraer fechas del CSV")
+
+        fecha_inicio = dt.fromisoformat(todas_fechas[0]).date()
+        fecha_fin = dt.fromisoformat(todas_fechas[-1]).date()
+
+        # Crear cálculo satelital
+        calculo = CalculoSatelital(
+            parcela_id=parcela_id,
+            fecha_inicio=fecha_inicio,
+            fecha_fin=fecha_fin,
+            modelo_estimacion="NDVI-Biomasa (CSV)",
+            fuente_datos="NASA_MODIS",
+            producto="MOD13Q1.061",
+            estado_procesamiento="procesando"
+        )
+
+        db.add(calculo)
+        db.commit()
+        db.refresh(calculo)
+
+        # Procesar datos y calcular estadísticas
+        # Combinar datos por fecha
+        serie_temporal = []
+        for fecha in todas_fechas:
+            entrada = {"fecha": fecha, "calidad": "buena"}
+            if fecha in datos_ndvi:
+                entrada["ndvi"] = round(datos_ndvi[fecha], 4)
+                # Calcular biomasa y carbono para cada punto
+                biomasa = estimar_biomasa_desde_ndvi(entrada["ndvi"], area_ha=0.1)
+                carbono = estimar_carbono_desde_biomasa(biomasa, 0.47)
+                entrada["biomasa"] = round(biomasa, 4)
+                entrada["carbono"] = round(carbono, 4)
+            if fecha in datos_evi:
+                entrada["evi"] = round(datos_evi[fecha], 4)
+            serie_temporal.append(entrada)
+
+        # Guardar serie temporal
+        calculo.serie_temporal = json.dumps(serie_temporal)
+
+        # Calcular estadísticas
+        ndvi_values = list(datos_ndvi.values())
+        evi_values = list(datos_evi.values())
+
+        if ndvi_values:
+            calculo.ndvi_promedio = sum(ndvi_values) / len(ndvi_values)
+            calculo.ndvi_min = min(ndvi_values)
+            calculo.ndvi_max = max(ndvi_values)
+
+        if evi_values:
+            calculo.evi_promedio = sum(evi_values) / len(evi_values)
+            calculo.evi_min = min(evi_values)
+            calculo.evi_max = max(evi_values)
+
+        # Calcular biomasa y carbono
+        if calculo.ndvi_promedio and calculo.ndvi_promedio > 0:
+            biomasa_estimada = estimar_biomasa_desde_ndvi(calculo.ndvi_promedio, area_ha=0.1)
+            carbono = estimar_carbono_desde_biomasa(biomasa_estimada, 0.47)
+
+            calculo.biomasa_aerea_estimada = biomasa_estimada
+            calculo.carbono_estimado = carbono
+
+            # Por hectárea (parcela es 0.1 ha)
+            calculo.biomasa_por_hectarea = biomasa_estimada / 0.1
+            calculo.carbono_por_hectarea = carbono / 0.1
+
+        # Agregar metadatos adicionales
+        calculo.factor_carbono = 0.47
+        calculo.num_imagenes_usadas = len(serie_temporal)
+        calculo.calidad_datos = calculo.clasificar_calidad_ndvi()
+        calculo.estado_procesamiento = "completado"
+
+        db.commit()
+        db.refresh(calculo)
+
+        return calculo
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error procesando CSV: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error procesando archivo CSV: {str(e)}"
         )

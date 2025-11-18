@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import MapView from '../../components/MapView'
 import FormularioParcela from '../../components/FormularioParcela'
+import FormularioPuntoReferencia from '../../components/FormularioPuntoReferencia'
 import SeleccionModoCreacion from '../../components/SeleccionModoCreacion'
 import ParcelaInteractiva from '../../components/ParcelaInteractiva'
 import { fetchParcelas, getPuntosReferencia, getZonasReferencia } from '../../services/api'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { RefreshCw, Plus, MapPin } from 'lucide-react'
+import { RefreshCw, Plus, MapPin, Navigation } from 'lucide-react'
 
 function MapaPage() {
   const location = useLocation()
@@ -20,7 +21,7 @@ function MapaPage() {
     estado: 'Todos'
   })
   const [loading, setLoading] = useState(true)
-  const [vistaActual, setVistaActual] = useState('mapa') // 'mapa', 'formulario', 'interactivo'
+  const [vistaActual, setVistaActual] = useState('mapa') // 'mapa', 'formulario', 'interactivo', 'formularioPunto'
   const [parcelaSeleccionada, setParcelaSeleccionada] = useState(location.state?.parcelaSeleccionada || null)
   const [puntosReferencia, setPuntosReferencia] = useState([])
   const [modoCreacion, setModoCreacion] = useState(null) // 'manual' | 'interactivo' | null
@@ -123,6 +124,12 @@ function MapaPage() {
     setVistaActual('mapa')
   }
 
+  const handlePuntoCreado = (nuevoPunto) => {
+    loadZonas()
+    loadPuntosReferencia()
+    setVistaActual('mapa')
+  }
+
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Header con filtros */}
@@ -174,6 +181,10 @@ function MapaPage() {
               <RefreshCw className="h-4 w-4 mr-2" />
               Actualizar
             </Button>
+            <Button variant="outline" onClick={() => setVistaActual('formularioPunto')}>
+              <Navigation className="h-4 w-4 mr-2" />
+              Nuevo Punto
+            </Button>
             <Button onClick={handleNuevaParcelaClick} className="bg-primary">
               <Plus className="h-4 w-4 mr-2" />
               Nueva Parcela
@@ -213,6 +224,15 @@ function MapaPage() {
           />
         )}
       </div>
+
+      {vistaActual === 'formularioPunto' && (
+        <FormularioPuntoReferencia
+          zonas={zonas}
+          zonaInicial={filters.zona !== 'Todas' ? filters.zona : ''}
+          onPuntoCreado={handlePuntoCreado}
+          onClose={() => setVistaActual('mapa')}
+        />
+      )}
 
       {modoCreacion === 'seleccion' && (
         <SeleccionModoCreacion

@@ -30,10 +30,17 @@ export default function Layout({ children }) {
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 items-center gap-3 border-b border-border px-6">
+            {/* Logo blanco para modo oscuro */}
             <img
               src="/JC2R_LOGO.svg"
               alt="JC2R Logo"
-              className="h-10 w-auto"
+              className="h-10 w-auto dark:block hidden"
+            />
+            {/* Logo negro para modo claro */}
+            <img
+              src="/JC2R_LOGO_BLACK.svg"
+              alt="JC2R Logo"
+              className="h-10 w-auto dark:hidden block"
             />
             <div className="flex flex-col">
               <span className="text-lg font-bold text-foreground">

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?><gpx xmlns="http://www.topografix.com/GPX/1/1" xmlns:gpxtpx="http://www.garmin.com/xmlschemas/TrackPointExtension/v1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:gpxx="http://www.garmin.com/xmlschemas/GpxExtensions/v3" xsi:schemaLocation="http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd http://www.garmin.com/xmlschemas/GpxExtensions/v3 http://www.garmin.com/xmlschemas/GpxExtensionsv3.xsd http://www.garmin.com/xmlschemas/TrackPointExtension/v1 http://www.garmin.com/xmlschemas/TrackPointExtensionv1.xsd" version="1.1">
+  <metadata>
+    <name>Patruyeros Zona ribereña Puerto Nariño Com. Patruyeros</name>
+    <copyright author="Tracklia app (https://play.google.com/store/apps/details?id=app.tracklia)"/>
+    <time>2025-10-30T01:56:06Z</time>
+  </metadata>
+  <wpt lat="-3.789128" lon="-70.356827">
+    <time>2025-10-21T15:42:29Z</time>
+    <name>Entrada patruyeros</name>
+    <desc>Camino hacia Amazon birding</desc>
+  </wpt>
+  <wpt lat="-3.787737" lon="-70.356106">
+    <time>2025-10-21T15:44:11Z</time>
+    <name>Amazon birding</name>
+    <desc>Zona recepción</desc>
+  </wpt>
+</gpx>

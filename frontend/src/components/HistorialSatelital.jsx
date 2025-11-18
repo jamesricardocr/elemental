@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { getCalculosSatelitalesParcela, deleteCalculoSatelital, getSerieTemporalSatelital, subirCSVNasa } from '../services/api'
+import { getCalculosSatelitalesParcela, deleteCalculoSatelital, getSerieTemporalSatelital, subirCSVNasa, crearAnalisisDesdeCSV } from '../services/api'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -143,6 +143,41 @@ const HistorialSatelital = ({ parcelaId, onNuevoAnalisis }) => {
     }
   }
 
+  const handleCargarCSVNuevo = async () => {
+    // Crear input file temporal
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = '.csv'
+
+    input.onchange = async (e) => {
+      const file = e.target.files[0]
+      if (!file) return
+
+      try {
+        setSubiendoCSV(true)
+        toast.loading('Procesando CSV...', { id: 'csv-loading' })
+
+        const nuevoCalculo = await crearAnalisisDesdeCSV(parcelaId, file)
+
+        await cargarCalculos()
+        setCalculoSeleccionado(nuevoCalculo)
+
+        if (nuevoCalculo.estado_procesamiento === 'completado') {
+          await cargarSerieTemporal(nuevoCalculo.id)
+        }
+
+        toast.success('Análisis creado exitosamente desde CSV', { id: 'csv-loading' })
+      } catch (error) {
+        console.error('Error al cargar CSV:', error)
+        toast.error('Error al procesar el archivo CSV: ' + error.message, { id: 'csv-loading' })
+      } finally {
+        setSubiendoCSV(false)
+      }
+    }
+
+    input.click()
+  }
+
   const getEstadoBadge = (estado) => {
     const badges = {
       completado: { text: 'Completado', variant: 'default' },
@@ -167,15 +202,30 @@ const HistorialSatelital = ({ parcelaId, onNuevoAnalisis }) => {
     <TooltipProvider>
       <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h3 className="text-lg font-semibold">Análisis Satelitales ({calculos.length})</h3>
           <p className="text-sm text-muted-foreground">Estimaciones de carbono mediante teledetección</p>
         </div>
-        <Button onClick={onNuevoAnalisis}>
-          <Satellite className="mr-2 h-4 w-4" />
-          Nuevo Análisis
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={onNuevoAnalisis}>
+            <Satellite className="mr-2 h-4 w-4" />
+            Nuevo Análisis NASA
+          </Button>
+          <Button onClick={handleCargarCSVNuevo} disabled={subiendoCSV}>
+            {subiendoCSV ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Procesando...
+              </>
+            ) : (
+              <>
+                <Upload className="mr-2 h-4 w-4" />
+                Cargar CSV
+              </>
+            )}
+          </Button>
+        </div>
       </div>
 
       {calculos.length === 0 ? (
