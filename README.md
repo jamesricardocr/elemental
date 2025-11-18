@@ -1233,5 +1233,5 @@ Este proyecto es propiedad del SENA - Centro para la Biodiversidad y el Turismo 
 
 ---
 
-**Versión**: 1.0.0
+**Versión**: 1.0.1
 **Última actualización**: Noviembre 2025
