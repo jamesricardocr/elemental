@@ -59,6 +59,7 @@ class Parcela(Base):
     herbaceas = relationship("Herbaceas", back_populates="parcela", cascade="all, delete-orphan")
     calculos = relationship("CalculoBiomasa", back_populates="parcela", cascade="all, delete-orphan")
     calculos_satelitales = relationship("CalculoSatelital", back_populates="parcela", cascade="all, delete-orphan")
+    subparcelas = relationship("Subparcela", back_populates="parcela", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Parcela(codigo='{self.codigo}', zona='{self.zona_priorizada}')>"

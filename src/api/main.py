@@ -34,6 +34,7 @@ from .routes.necromasa import router as necromasa_router
 from .routes.herbaceas import router as herbaceas_router
 from .routes.calculos import router as calculos_router
 from .routes.calculos_satelitales import router as calculos_satelitales_router
+from .routes.subparcelas import router as subparcelas_router
 
 # Registrar routers
 app.include_router(parcelas_router, prefix="/api/v1/parcelas", tags=["Parcelas"])
@@ -44,6 +45,7 @@ app.include_router(necromasa_router, prefix="/api/v1/necromasa", tags=["Necromas
 app.include_router(herbaceas_router, prefix="/api/v1/herbaceas", tags=["Herbáceas"])
 app.include_router(calculos_router, prefix="/api/v1/calculos", tags=["Cálculos de Biomasa"])
 app.include_router(calculos_satelitales_router, prefix="/api/v1/calculos-satelitales", tags=["Cálculos Satelitales"])
+app.include_router(subparcelas_router, prefix="/api/v1/subparcelas", tags=["Subparcelas"])
 
 
 @app.get("/")

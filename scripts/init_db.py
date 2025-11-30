@@ -11,7 +11,7 @@ root_dir = Path(__file__).parent.parent
 sys.path.insert(0, str(root_dir))
 
 from config.database import Base, engine, SessionLocal
-from src.models import Parcela, Especie, Arbol, Necromasa, Herbaceas, CalculoBiomasa
+from src.models import Parcela, Especie, Arbol, Necromasa, Herbaceas, CalculoBiomasa, Zona
 from datetime import date
 
 

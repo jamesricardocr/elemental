@@ -8,6 +8,9 @@ from .arbol import Arbol
 from .necromasa import Necromasa
 from .herbaceas import Herbaceas
 from .calculo import CalculoBiomasa
+from .calculo_satelital import CalculoSatelital
+from .zona import Zona
+from .subparcela import Subparcela
 
 __all__ = [
     "Parcela",
@@ -16,4 +19,7 @@ __all__ = [
     "Necromasa",
     "Herbaceas",
     "CalculoBiomasa",
+    "CalculoSatelital",
+    "Zona",
+    "Subparcela",
 ]

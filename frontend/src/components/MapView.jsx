@@ -13,12 +13,15 @@ const COLOR_MAP = {
   'en_proceso': '#fd7e14'
 }
 
-function MapView({ parcelas, parcelaSeleccionada, puntosReferencia = [], zonaSeleccionada }) {
+const SUBPARCELA_COLOR = '#FF6F00'  // Naranja oscuro para subparcelas
+
+function MapView({ parcelas, parcelaSeleccionada, puntosReferencia = [], subparcelas = [], zonaSeleccionada }) {
   const mapRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const markersRef = useRef([])
   const polygonsRef = useRef([])
   const puntosMarkersRef = useRef([])
+  const subparcelasPolygonsRef = useRef([])
   const [mapLoaded, setMapLoaded] = useState(false)
 
   useEffect(() => {
@@ -79,16 +82,20 @@ function MapView({ parcelas, parcelaSeleccionada, puntosReferencia = [], zonaSel
   useEffect(() => {
     if (!mapLoaded || !mapInstanceRef.current || !window.google) return
 
-    console.log('Actualizando marcadores, parcelas:', parcelas.length)
+    console.log('Actualizando marcadores, parcelas:', parcelas.length, 'puntos:', puntosReferencia.length, 'subparcelas:', subparcelas.length)
 
     // Limpiar marcadores y polígonos anteriores
     markersRef.current.forEach(marker => marker.setMap(null))
     polygonsRef.current.forEach(polygon => polygon.setMap(null))
+    puntosMarkersRef.current.forEach(marker => marker.setMap(null))
+    subparcelasPolygonsRef.current.forEach(polygon => polygon.setMap(null))
     markersRef.current = []
     polygonsRef.current = []
+    puntosMarkersRef.current = []
+    subparcelasPolygonsRef.current = []
 
-    if (parcelas.length === 0) {
-      // Volver a Leticia si no hay parcelas
+    if (parcelas.length === 0 && puntosReferencia.length === 0 && subparcelas.length === 0) {
+      // Volver a Leticia si no hay parcelas, puntos ni subparcelas
       mapInstanceRef.current.setCenter({ lat: LETICIA_LAT, lng: LETICIA_LNG })
       mapInstanceRef.current.setZoom(12)
       return
@@ -161,63 +168,7 @@ function MapView({ parcelas, parcelaSeleccionada, puntosReferencia = [], zonaSel
       }
     })
 
-    // Ajustar vista para mostrar todas las parcelas
-    if (parcelas.length > 0) {
-      mapInstanceRef.current.fitBounds(bounds)
-
-      // Asegurar un nivel mínimo de zoom
-      const listener = window.google.maps.event.addListenerOnce(mapInstanceRef.current, 'idle', () => {
-        if (mapInstanceRef.current.getZoom() > 16) {
-          mapInstanceRef.current.setZoom(16)
-        }
-      })
-    }
-  }, [parcelas, mapLoaded])
-
-  // Efecto para centrar en parcela seleccionada
-  useEffect(() => {
-    if (!mapLoaded || !mapInstanceRef.current || !parcelaSeleccionada) return
-
-    if (parcelaSeleccionada.latitud && parcelaSeleccionada.longitud) {
-      console.log('Centrando en parcela:', parcelaSeleccionada.codigo)
-
-      mapInstanceRef.current.panTo({
-        lat: parcelaSeleccionada.latitud,
-        lng: parcelaSeleccionada.longitud
-      })
-
-      mapInstanceRef.current.setZoom(17)
-
-      // Resaltar el marcador de la parcela seleccionada
-      const selectedMarker = markersRef.current.find(marker => {
-        const pos = marker.getPosition()
-        return pos.lat() === parcelaSeleccionada.latitud && pos.lng() === parcelaSeleccionada.longitud
-      })
-
-      if (selectedMarker) {
-        // Animar el marcador
-        selectedMarker.setAnimation(window.google.maps.Animation.BOUNCE)
-        setTimeout(() => {
-          selectedMarker.setAnimation(null)
-        }, 2000)
-      }
-    }
-  }, [parcelaSeleccionada, mapLoaded])
-
-  // Efecto para mostrar puntos de referencia
-  useEffect(() => {
-    if (!mapLoaded || !mapInstanceRef.current || !window.google) return
-
-    console.log('Actualizando puntos de referencia:', puntosReferencia.length)
-
-    // Limpiar puntos anteriores
-    puntosMarkersRef.current.forEach(marker => marker.setMap(null))
-    puntosMarkersRef.current = []
-
-    if (puntosReferencia.length === 0) return
-
-    const bounds = new window.google.maps.LatLngBounds()
-
+    // Agregar puntos de referencia al mapa y bounds
     puntosReferencia.forEach(punto => {
       if (!punto.latitud || !punto.longitud) return
 
@@ -261,17 +212,97 @@ function MapView({ parcelas, parcelaSeleccionada, puntosReferencia = [], zonaSel
       bounds.extend(position)
     })
 
-    // Ajustar vista para mostrar todos los puntos de referencia
-    if (puntosReferencia.length > 0 && parcelas.length === 0) {
+    // Agregar subparcelas al mapa
+    subparcelas.forEach(subparcela => {
+      if (!subparcela.vertices || subparcela.vertices.length !== 4) return
+
+      const vertices = subparcela.vertices.map(v => ({ lat: v[0], lng: v[1] }))
+      const validVertices = vertices.every(v => v.lat && v.lng)
+
+      if (validVertices) {
+        const polygon = new window.google.maps.Polygon({
+          paths: vertices,
+          strokeColor: SUBPARCELA_COLOR,
+          strokeOpacity: 0.9,
+          strokeWeight: 2,
+          fillColor: SUBPARCELA_COLOR,
+          fillOpacity: 0.3,
+          map: mapInstanceRef.current
+        })
+
+        // Info window para subparcela
+        const center = { lat: subparcela.latitud, lng: subparcela.longitud }
+        const infoContent = `
+          <div style="font-family: Arial; padding: 12px; min-width: 220px;">
+            <h3 style="color: ${SUBPARCELA_COLOR}; margin: 0 0 12px 0; font-size: 1.1rem;">📐 ${subparcela.codigo}</h3>
+            <p style="margin: 6px 0;"><strong>Nombre:</strong> ${subparcela.nombre || 'N/A'}</p>
+            <p style="margin: 6px 0;"><strong>Tamaño:</strong> 10m x 10m (100 m²)</p>
+            <p style="margin: 6px 0;"><strong>Vértice origen:</strong> Vértice ${subparcela.vertice_origen}</p>
+            ${subparcela.proposito ? `<p style="margin: 6px 0;"><strong>Propósito:</strong> ${subparcela.proposito}</p>` : ''}
+            <p style="margin: 6px 0;"><strong>Estado:</strong> ${subparcela.estado}</p>
+            <p style="margin: 6px 0; font-size: 0.85rem; color: #666;"><strong>Centro:</strong> ${subparcela.latitud.toFixed(6)}, ${subparcela.longitud.toFixed(6)}</p>
+          </div>
+        `
+
+        const infoWindow = new window.google.maps.InfoWindow({
+          content: infoContent,
+          position: center
+        })
+
+        polygon.addListener('click', () => {
+          infoWindow.open(mapInstanceRef.current)
+        })
+
+        subparcelasPolygonsRef.current.push(polygon)
+
+        // Agregar centro al bounds
+        bounds.extend(center)
+      }
+    })
+
+    // Ajustar vista para mostrar todas las parcelas, puntos y subparcelas
+    if (parcelas.length > 0 || puntosReferencia.length > 0 || subparcelas.length > 0) {
       mapInstanceRef.current.fitBounds(bounds)
 
+      // Asegurar un nivel mínimo de zoom
       const listener = window.google.maps.event.addListenerOnce(mapInstanceRef.current, 'idle', () => {
-        if (mapInstanceRef.current.getZoom() > 15) {
-          mapInstanceRef.current.setZoom(15)
+        if (mapInstanceRef.current.getZoom() > 16) {
+          mapInstanceRef.current.setZoom(16)
         }
       })
     }
-  }, [puntosReferencia, mapLoaded, parcelas.length])
+  }, [parcelas, puntosReferencia, subparcelas, mapLoaded])
+
+  // Efecto para centrar en parcela seleccionada
+  useEffect(() => {
+    if (!mapLoaded || !mapInstanceRef.current || !parcelaSeleccionada) return
+
+    if (parcelaSeleccionada.latitud && parcelaSeleccionada.longitud) {
+      console.log('Centrando en parcela:', parcelaSeleccionada.codigo)
+
+      mapInstanceRef.current.panTo({
+        lat: parcelaSeleccionada.latitud,
+        lng: parcelaSeleccionada.longitud
+      })
+
+      mapInstanceRef.current.setZoom(17)
+
+      // Resaltar el marcador de la parcela seleccionada
+      const selectedMarker = markersRef.current.find(marker => {
+        const pos = marker.getPosition()
+        return pos.lat() === parcelaSeleccionada.latitud && pos.lng() === parcelaSeleccionada.longitud
+      })
+
+      if (selectedMarker) {
+        // Animar el marcador
+        selectedMarker.setAnimation(window.google.maps.Animation.BOUNCE)
+        setTimeout(() => {
+          selectedMarker.setAnimation(null)
+        }, 2000)
+      }
+    }
+  }, [parcelaSeleccionada, mapLoaded])
+
 
   return (
     <div className="map-container">

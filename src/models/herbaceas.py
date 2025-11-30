@@ -14,6 +14,7 @@ class Herbaceas(Base):
     # Identificación
     id = Column(Integer, primary_key=True, index=True)
     parcela_id = Column(Integer, ForeignKey("parcelas.id", ondelete="CASCADE"), nullable=False)
+    subparcela_id = Column(Integer, ForeignKey("subparcelas.id", ondelete="CASCADE"), nullable=True)
 
     # Identificación de cuadrante (1m x 1m)
     cuadrante_numero = Column(Integer)
@@ -41,6 +42,7 @@ class Herbaceas(Base):
 
     # Relaciones
     parcela = relationship("Parcela", back_populates="herbaceas")
+    subparcela = relationship("Subparcela", back_populates="herbaceas")
 
     def __repr__(self):
         return f"<Herbaceas(cuadrante={self.cuadrante_numero}, peso_seco={self.peso_seco}kg)>"

@@ -14,6 +14,7 @@ class Arbol(Base):
     # Identificación
     id = Column(Integer, primary_key=True, index=True)
     parcela_id = Column(Integer, ForeignKey("parcelas.id", ondelete="CASCADE"), nullable=False)
+    subparcela_id = Column(Integer, ForeignKey("subparcelas.id", ondelete="CASCADE"), nullable=True)
     especie_id = Column(Integer, ForeignKey("especies.id"))
 
     numero_arbol = Column(Integer, nullable=False)  # Número único dentro de la parcela
@@ -44,6 +45,7 @@ class Arbol(Base):
 
     # Relaciones
     parcela = relationship("Parcela", back_populates="arboles")
+    subparcela = relationship("Subparcela", back_populates="arboles")
     especie = relationship("Especie", back_populates="arboles")
 
     def __repr__(self):

@@ -8,6 +8,8 @@ from typing import List, Optional
 from pydantic import BaseModel
 from config.database import get_db
 from load_puntos_referencia import PuntoReferencia
+from src.models.parcela import Parcela
+from src.models.zona import Zona
 
 router = APIRouter()
 
@@ -25,15 +27,31 @@ class PuntoReferenciaCreate(BaseModel):
         from_attributes = True
 
 
+class ZonaCreate(BaseModel):
+    nombre: str
+    descripcion: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 @router.get("/zonas", summary="Listar zonas disponibles")
 def listar_zonas(db: Session = Depends(get_db)):
     """
-    Obtiene la lista de todas las zonas priorizadas con puntos de referencia.
+    Obtiene la lista de todas las zonas desde la tabla de zonas.
 
-    Retorna un array de nombres de zonas únicas.
+    Las zonas son agrupaciones lógicas que se crean independientemente
+    y pueden existir sin puntos de referencia o parcelas asociadas.
+
+    Retorna un array de nombres de zonas únicas ordenadas alfabéticamente.
     """
-    zonas = db.query(PuntoReferencia.zona).distinct().all()
-    return [z[0] for z in zonas]
+    # Obtener todas las zonas desde la tabla zonas
+    zonas = db.query(Zona.nombre).order_by(Zona.nombre).all()
+
+    # Extraer solo los nombres
+    nombres_zonas = [z[0] for z in zonas]
+
+    return nombres_zonas
 
 
 @router.get("/", summary="Obtener puntos de referencia")
@@ -165,3 +183,70 @@ def eliminar_punto_referencia(
     db.commit()
 
     return {"message": "Punto de referencia eliminado exitosamente"}
+
+
+# ==================== ENDPOINTS DE ZONAS ====================
+
+@router.post("/zonas", summary="Crear nueva zona")
+def crear_zona(
+    zona: ZonaCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Crea una nueva zona en la base de datos.
+
+    Las zonas son agrupaciones lógicas que existen independientemente
+    de puntos de referencia o parcelas. Se crean primero y luego
+    se les asignan puntos o parcelas.
+
+    - **nombre**: Nombre único de la zona (requerido)
+    - **descripcion**: Descripción opcional de la zona
+    """
+    # Validar que el nombre no esté vacío
+    if not zona.nombre or not zona.nombre.strip():
+        raise HTTPException(status_code=400, detail="El nombre de la zona no puede estar vacío")
+
+    # Verificar si ya existe una zona con ese nombre
+    zona_existente = db.query(Zona).filter(Zona.nombre == zona.nombre.strip()).first()
+    if zona_existente:
+        raise HTTPException(status_code=400, detail=f"Ya existe una zona con el nombre '{zona.nombre.strip()}'")
+
+    # Crear nueva zona
+    nueva_zona = Zona(
+        nombre=zona.nombre.strip(),
+        descripcion=zona.descripcion.strip() if zona.descripcion else None
+    )
+
+    db.add(nueva_zona)
+    db.commit()
+    db.refresh(nueva_zona)
+
+    return {
+        "id": nueva_zona.id,
+        "nombre": nueva_zona.nombre,
+        "descripcion": nueva_zona.descripcion,
+        "created_at": nueva_zona.created_at,
+        "message": "Zona creada exitosamente"
+    }
+
+
+@router.delete("/zonas/{zona_id}", summary="Eliminar zona")
+def eliminar_zona(
+    zona_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Elimina una zona por su ID.
+
+    ADVERTENCIA: Esto no elimina las parcelas o puntos asociados,
+    solo elimina la zona de la lista de zonas disponibles.
+    """
+    zona = db.query(Zona).filter(Zona.id == zona_id).first()
+
+    if not zona:
+        raise HTTPException(status_code=404, detail="Zona no encontrada")
+
+    db.delete(zona)
+    db.commit()
+
+    return {"message": f"Zona '{zona.nombre}' eliminada exitosamente"}

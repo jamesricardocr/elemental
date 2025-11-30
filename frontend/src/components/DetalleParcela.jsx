@@ -6,6 +6,7 @@ import GestionNecromasa from './GestionNecromasa'
 import GestionHerbaceas from './GestionHerbaceas'
 import CalculosBiomasa from './CalculosBiomasa'
 import HistorialSatelital from './HistorialSatelital'
+import GestionSubparcelas from './GestionSubparcelas'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,7 +21,8 @@ import {
   Calculator,
   Satellite,
   MapPin,
-  Calendar
+  Calendar,
+  Square
 } from 'lucide-react'
 
 const DetalleParcela = ({ codigo, parcelaId, onVolver }) => {
@@ -64,6 +66,7 @@ const DetalleParcela = ({ codigo, parcelaId, onVolver }) => {
 
   const tabs = [
     { id: 'info', label: 'Información General', icon: Info },
+    { id: 'subparcelas', label: 'Subparcelas', icon: Square },
     { id: 'arboles', label: 'Árboles', icon: TreeDeciduous },
     { id: 'necromasa', label: 'Necromasa', icon: Leaf },
     { id: 'herbaceas', label: 'Herbáceas', icon: Sprout },
@@ -278,6 +281,10 @@ const DetalleParcela = ({ codigo, parcelaId, onVolver }) => {
               </Card>
             )}
           </div>
+        )}
+
+        {tabActiva === 'subparcelas' && (
+          <GestionSubparcelas parcelaId={parcela.id} parcela={parcela} />
         )}
 
         {tabActiva === 'arboles' && (

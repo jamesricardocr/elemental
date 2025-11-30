@@ -24,7 +24,7 @@ Sistema de monitoreo y cuantificación de biomasa y carbono almacenado para proy
 
 ## 📖 Descripción General
 
-**Elemental** es una plataforma web integral diseñada para el proyecto de investigación **"Ecoturismo Amazónico: Construcción participativa de una vitrina digital para la promoción del turismo de naturaleza y los saberes locales"** (PAP_2025_36_18) del SENA - Centro para la Biodiversidad y el Turismo del Amazonas.
+**Elemental** es una plataforma web integral open source diseñada para el monitoreo y cuantificación de biomasa y carbono almacenado en bosques tropicales. Desarrollada por **JC2R S.A.S**, la plataforma combina metodologías científicas validadas con tecnología moderna para facilitar inventarios forestales y análisis de carbono.
 
 El sistema permite:
 - Gestión de parcelas forestales de 0.1 hectáreas (20m × 50m)
@@ -1189,33 +1189,30 @@ import pdb; pdb.set_trace()
 
 ## 📄 Licencia
 
-Este proyecto es propiedad del SENA - Centro para la Biodiversidad y el Turismo del Amazonas, Regional Amazonas.
+**MIT License**
 
-**Confidencialidad**: Toda la información generada está sujeta a estricta confidencialidad según obligaciones contractuales:
-- Prohibido divulgar, reproducir o utilizar sin autorización previa y escrita de SENA
-- Aplica durante ejecución del contrato y 2 años posteriores
-- Incluye resultados de investigación, bases de datos, creaciones e invenciones
+Copyright (c) 2025 JC2R S.A.S
+
+Este es un proyecto open source. Consulta el archivo LICENSE para más detalles.
 
 ---
 
 ## 📞 Contacto y Soporte
 
-**Proyecto**: PAP_2025_36_18
-**Institución**: SENA - Centro para la Biodiversidad y el Turismo del Amazonas
-**Regional**: Amazonas
-
-**Desarrollado por**: JC2R
-**Sitio web**: https://elemental.jc2r.com
+**Desarrollado por**: JC2R S.A.S
+**Sitio web corporativo**: https://jc2r.com
+**Demo del sistema**: https://elemental.jc2r.com
+**Email**: info@jc2r.com
 
 ---
 
 ## 🙏 Agradecimientos
 
-- SENA Regional Amazonas
-- Comunidades locales participantes (Patruyeros, Santa Sofía)
+- Comunidades locales de la Amazonía (Patruyeros, Santa Sofía)
 - NASA Earthdata por acceso a datos MODIS
 - Chave et al. por modelos alométricos
 - IPCC por factores de conversión
+- Comunidad open source
 
 ---
 

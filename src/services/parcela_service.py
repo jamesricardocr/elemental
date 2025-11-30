@@ -92,6 +92,24 @@ class ParcelaService:
                     ancho=20, largo=50
                 )
                 self._asignar_vertices(parcela, vertices)
+            # Asignar vértices manuales si vienen en kwargs
+            elif all([
+                kwargs.get('vertice1_lat') is not None,
+                kwargs.get('vertice1_lon') is not None,
+                kwargs.get('vertice2_lat') is not None,
+                kwargs.get('vertice2_lon') is not None,
+                kwargs.get('vertice3_lat') is not None,
+                kwargs.get('vertice3_lon') is not None,
+                kwargs.get('vertice4_lat') is not None,
+                kwargs.get('vertice4_lon') is not None
+            ]):
+                vertices = [
+                    (kwargs['vertice1_lat'], kwargs['vertice1_lon']),
+                    (kwargs['vertice2_lat'], kwargs['vertice2_lon']),
+                    (kwargs['vertice3_lat'], kwargs['vertice3_lon']),
+                    (kwargs['vertice4_lat'], kwargs['vertice4_lon'])
+                ]
+                self._asignar_vertices(parcela, vertices)
 
         self.db.add(parcela)
         self.db.commit()

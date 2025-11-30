@@ -396,3 +396,30 @@ export async function crearAnalisisDesdeCSV(parcelaId, file) {
 
   return await response.json()
 }
+
+// ============= SUBPARCELAS =============
+export async function fetchSubparcelasParcela(parcelaId) {
+  const response = await fetch(`${API_BASE_URL}/subparcelas/parcela/${parcelaId}`)
+  if (!response.ok) throw new Error('Error fetching subparcelas')
+  return await response.json()
+}
+
+export async function fetchTodasSubparcelas() {
+  try {
+    // Obtener todas las parcelas
+    const parcelas = await fetchParcelas()
+
+    // Obtener subparcelas de cada parcela
+    const subparcelasPromises = parcelas.map(parcela =>
+      fetchSubparcelasParcela(parcela.id).catch(() => [])
+    )
+
+    const subparcelasArrays = await Promise.all(subparcelasPromises)
+
+    // Aplanar array de arrays
+    return subparcelasArrays.flat()
+  } catch (error) {
+    console.error('Error fetching todas subparcelas:', error)
+    return []
+  }
+}

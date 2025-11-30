@@ -14,6 +14,7 @@ class Necromasa(Base):
     # Identificación
     id = Column(Integer, primary_key=True, index=True)
     parcela_id = Column(Integer, ForeignKey("parcelas.id", ondelete="CASCADE"), nullable=False)
+    subparcela_id = Column(Integer, ForeignKey("subparcelas.id", ondelete="CASCADE"), nullable=True)
 
     # Identificación de subparcela (5m x 5m)
     subparcela_numero = Column(Integer)
@@ -44,6 +45,7 @@ class Necromasa(Base):
 
     # Relaciones
     parcela = relationship("Parcela", back_populates="necromasa")
+    subparcela = relationship("Subparcela", back_populates="necromasa")
 
     def __repr__(self):
         return f"<Necromasa(tipo='{self.tipo}', peso_seco={self.peso_seco}kg)>"

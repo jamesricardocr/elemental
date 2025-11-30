@@ -3,9 +3,10 @@ import { useLocation } from 'react-router-dom'
 import MapView from '../../components/MapView'
 import FormularioParcela from '../../components/FormularioParcela'
 import FormularioPuntoReferencia from '../../components/FormularioPuntoReferencia'
+import FormularioNuevaZona from '../../components/FormularioNuevaZona'
 import SeleccionModoCreacion from '../../components/SeleccionModoCreacion'
 import ParcelaInteractiva from '../../components/ParcelaInteractiva'
-import { fetchParcelas, getPuntosReferencia, getZonasReferencia } from '../../services/api'
+import { fetchParcelas, getPuntosReferencia, getZonasReferencia, fetchTodasSubparcelas } from '../../services/api'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
@@ -21,14 +22,16 @@ function MapaPage() {
     estado: 'Todos'
   })
   const [loading, setLoading] = useState(true)
-  const [vistaActual, setVistaActual] = useState('mapa') // 'mapa', 'formulario', 'interactivo', 'formularioPunto'
+  const [vistaActual, setVistaActual] = useState('mapa') // 'mapa', 'formulario', 'interactivo', 'formularioPunto', 'formularioZona'
   const [parcelaSeleccionada, setParcelaSeleccionada] = useState(location.state?.parcelaSeleccionada || null)
   const [puntosReferencia, setPuntosReferencia] = useState([])
+  const [subparcelas, setSubparcelas] = useState([])
   const [modoCreacion, setModoCreacion] = useState(null) // 'manual' | 'interactivo' | null
 
   useEffect(() => {
     loadZonas()
     loadParcelas()
+    loadSubparcelas()
   }, [])
 
   useEffect(() => {
@@ -61,6 +64,15 @@ function MapaPage() {
     }
   }
 
+  const loadSubparcelas = async () => {
+    try {
+      const data = await fetchTodasSubparcelas()
+      setSubparcelas(data)
+    } catch (error) {
+      console.error('Error cargando subparcelas:', error)
+    }
+  }
+
   const loadParcelas = async () => {
     try {
       setLoading(true)
@@ -89,6 +101,7 @@ function MapaPage() {
 
   const handleParcelaCreada = (nuevaParcela) => {
     loadParcelas()
+    loadSubparcelas()
     setVistaActual('mapa')
   }
 
@@ -125,6 +138,12 @@ function MapaPage() {
   }
 
   const handlePuntoCreado = (nuevoPunto) => {
+    loadZonas()
+    loadPuntosReferencia()
+    setVistaActual('mapa')
+  }
+
+  const handleZonaCreada = (nuevaZona) => {
     loadZonas()
     loadPuntosReferencia()
     setVistaActual('mapa')
@@ -181,6 +200,10 @@ function MapaPage() {
               <RefreshCw className="h-4 w-4 mr-2" />
               Actualizar
             </Button>
+            <Button variant="outline" onClick={() => setVistaActual('formularioZona')}>
+              <MapPin className="h-4 w-4 mr-2" />
+              Nueva Zona
+            </Button>
             <Button variant="outline" onClick={() => setVistaActual('formularioPunto')}>
               <Navigation className="h-4 w-4 mr-2" />
               Nuevo Punto
@@ -200,6 +223,7 @@ function MapaPage() {
             parcelas={filteredParcelas}
             parcelaSeleccionada={parcelaSeleccionada}
             puntosReferencia={puntosReferencia}
+            subparcelas={subparcelas}
             zonaSeleccionada={filters.zona}
           />
         )}
@@ -230,6 +254,13 @@ function MapaPage() {
           zonas={zonas}
           zonaInicial={filters.zona !== 'Todas' ? filters.zona : ''}
           onPuntoCreado={handlePuntoCreado}
+          onClose={() => setVistaActual('mapa')}
+        />
+      )}
+
+      {vistaActual === 'formularioZona' && (
+        <FormularioNuevaZona
+          onZonaCreada={handleZonaCreada}
           onClose={() => setVistaActual('mapa')}
         />
       )}
