@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { calcularVerticesParcela, formatearCoordenadas, calcularDistancia } from '../utils/geometryUtils'
-import { createParcela } from '../services/api'
+import { createParcela, createPuntoReferencia } from '../services/api'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,11 +35,6 @@ function ConfirmacionParcela({
   )
 
   const handleGuardar = async () => {
-    if (!codigo.trim()) {
-      setError('El código de la parcela es obligatorio')
-      return
-    }
-
     setGuardando(true)
     setError(null)
 
@@ -70,6 +65,24 @@ function ConfirmacionParcela({
       console.log('Creando parcela con datos:', parcelaData)
       const nuevaParcela = await createParcela(parcelaData)
       console.log('Parcela creada exitosamente:', nuevaParcela)
+
+      // Crear punto de referencia automáticamente en el centro de la parcela
+      if (zona) {
+        try {
+          await createPuntoReferencia({
+            zona: zona,
+            nombre: nombre.trim() || codigo.trim(),
+            descripcion: `Centro de la parcela ${codigo.trim()}`,
+            fuente: 'Calculado automáticamente al crear la parcela',
+            latitud: posicionParcela.lat,
+            longitud: posicionParcela.lng
+          })
+          console.log('Punto de referencia creado automáticamente')
+        } catch (puntoError) {
+          console.error('Error al crear punto de referencia:', puntoError)
+          // No bloquear la creación de la parcela si falla el punto
+        }
+      }
 
       onParcelaCreada(nuevaParcela)
     } catch (err) {
@@ -152,15 +165,17 @@ function ConfirmacionParcela({
 
             <div className="space-y-2">
               <Label htmlFor="codigo">
-                Código <span className="text-destructive">*</span>
+                Código
               </Label>
               <Input
                 id="codigo"
                 value={codigo}
                 onChange={(e) => setCodigo(e.target.value)}
-                placeholder="Ej: P-001, ZONA1-A, etc."
-                required
+                placeholder="Dejar vacío para generar automáticamente (P123456)"
               />
+              <p className="text-xs text-muted-foreground">
+                Código único (auto-generado si se deja vacío)
+              </p>
             </div>
 
             <div className="space-y-2">

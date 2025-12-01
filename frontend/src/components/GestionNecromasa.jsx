@@ -19,11 +19,12 @@ import {
   Plus,
   Trash2,
   X,
-  Weight
+  Weight,
+  Square
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-const GestionNecromasa = ({ parcelaId }) => {
+const GestionNecromasa = ({ subparcelaId, subparcela, parcelaId }) => {
   const [necromasas, setNecromasas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -39,12 +40,23 @@ const GestionNecromasa = ({ parcelaId }) => {
 
   useEffect(() => {
     cargarNecromasa()
-  }, [parcelaId])
+  }, [subparcelaId, parcelaId])
 
   const cargarNecromasa = async () => {
     try {
       setLoading(true)
-      const data = await fetchNecromasaParcela(parcelaId)
+
+      // Si hay subparcela, cargar necromasa de la subparcela; sino, de la parcela
+      const endpoint = subparcelaId
+        ? `/api/v1/necromasa/subparcela/${subparcelaId}`
+        : `/api/v1/necromasa/parcela/${parcelaId}`
+
+      const response = await fetch(endpoint)
+      if (!response.ok) {
+        throw new Error('Error al cargar necromasa')
+      }
+
+      const data = await response.json()
       setNecromasas(data)
       setError(null)
     } catch (err) {
@@ -95,6 +107,7 @@ const GestionNecromasa = ({ parcelaId }) => {
     try {
       const necromasaData = {
         parcela_id: parcelaId,
+        subparcela_id: subparcelaId || null,
         subparcela_numero: parseInt(nuevaNecromasa.subparcela_numero),
         tipo: nuevaNecromasa.tipo,
         peso_fresco: parseFloat(nuevaNecromasa.peso_fresco),
@@ -166,6 +179,50 @@ const GestionNecromasa = ({ parcelaId }) => {
 
   return (
     <div className="space-y-6">
+      {/* Información de Subparcela */}
+      {subparcela && (
+        <Card className="border-2 border-orange-500 bg-orange-50 dark:bg-orange-950">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orange-500 text-white">
+                  <Square className="h-6 w-6" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">
+                    Trabajando en Subparcela: {subparcela.codigo}
+                  </CardTitle>
+                  <CardDescription className="text-orange-700 dark:text-orange-300">
+                    {subparcela.nombre || 'Sin nombre'} • Tamaño: 10m × 10m (100 m²)
+                  </CardDescription>
+                </div>
+              </div>
+              <Badge variant="outline" className="border-orange-500 text-orange-700">
+                Vértice {subparcela.vertice_origen}
+              </Badge>
+            </div>
+          </CardHeader>
+          {(subparcela.proposito || subparcela.observaciones) && (
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {subparcela.proposito && (
+                  <div>
+                    <span className="font-medium text-orange-700 dark:text-orange-300">Propósito:</span>{' '}
+                    {subparcela.proposito}
+                  </div>
+                )}
+                {subparcela.observaciones && (
+                  <div>
+                    <span className="font-medium text-orange-700 dark:text-orange-300">Observaciones:</span>{' '}
+                    {subparcela.observaciones}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
       {/* Estadística total */}
       <Card>
         <CardHeader className="pb-3">
@@ -184,7 +241,11 @@ const GestionNecromasa = ({ parcelaId }) => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Necromasa Registrada ({necromasas.length})</h3>
-          <p className="text-sm text-muted-foreground">Registros de necromasa gruesa y fina</p>
+          <p className="text-sm text-muted-foreground">
+            {subparcela
+              ? `Registros de necromasa de la subparcela ${subparcela.codigo} (10m × 10m)`
+              : 'Registros de necromasa gruesa y fina'}
+          </p>
         </div>
         <Button
           onClick={() => setMostrarFormulario(!mostrarFormulario)}

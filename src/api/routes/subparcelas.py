@@ -10,13 +10,42 @@ from config.database import get_db
 from src.models.subparcela import Subparcela
 from src.models.parcela import Parcela
 import math
+import random
+import time
 
 router = APIRouter()
 
 
+def _generar_codigo_subparcela_unico(db: Session, prefijo: str = "S") -> str:
+    """
+    Genera un código único de 6 dígitos para una subparcela.
+
+    Args:
+        db: Sesión de base de datos
+        prefijo: Prefijo opcional (por defecto "S" para Subparcela)
+
+    Returns:
+        Código único en formato S123456
+    """
+    max_intentos = 100
+    for _ in range(max_intentos):
+        # Generar 6 dígitos aleatorios
+        numero = random.randint(100000, 999999)
+        codigo = f"{prefijo}{numero}"
+
+        # Verificar que no existe
+        existente = db.query(Subparcela).filter(Subparcela.codigo == codigo).first()
+        if not existente:
+            return codigo
+
+    # Si después de 100 intentos no encontró uno único, usar timestamp
+    timestamp = str(int(time.time()))[-6:]
+    return f"{prefijo}{timestamp}"
+
+
 # Modelos Pydantic
 class SubparcelaCreate(BaseModel):
-    codigo: str
+    codigo: Optional[str] = None
     nombre: Optional[str] = None
     parcela_id: int
     vertice_origen: int  # 1, 2, 3, o 4
@@ -27,11 +56,21 @@ class SubparcelaCreate(BaseModel):
         from_attributes = True
 
 
+class SubparcelaUpdate(BaseModel):
+    nombre: Optional[str] = None
+    proposito: Optional[str] = None
+    observaciones: Optional[str] = None
+    estado: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 def calcular_vertices_subparcela(parcela: Parcela, vertice_origen: int):
     """
     Calcula los 4 vértices de una subparcela de 10m x 10m
     desde uno de los vértices de la parcela principal.
-    La subparcela se coloca HACIA ADENTRO de la parcela, en dirección al centro.
+    La subparcela se coloca ALINEADA con los bordes de la parcela, hacia adentro.
 
     Args:
         parcela: Parcela principal
@@ -43,7 +82,7 @@ def calcular_vertices_subparcela(parcela: Parcela, vertice_origen: int):
     # Constantes para conversión
     METROS_POR_GRADO_LAT = 111320.0  # metros por grado de latitud
 
-    # Obtener el vértice de origen
+    # Obtener todos los vértices de la parcela
     vertices_parcela = {
         1: (parcela.vertice1_lat, parcela.vertice1_lon),
         2: (parcela.vertice2_lat, parcela.vertice2_lon),
@@ -56,51 +95,59 @@ def calcular_vertices_subparcela(parcela: Parcela, vertice_origen: int):
 
     lat_origen, lon_origen = vertices_parcela[vertice_origen]
 
-    # Calcular el centro de la parcela
-    centro_parcela_lat = parcela.latitud
-    centro_parcela_lon = parcela.longitud
-
-    # Vector desde el vértice hacia el centro
-    delta_hacia_centro_lat = centro_parcela_lat - lat_origen
-    delta_hacia_centro_lon = centro_parcela_lon - lon_origen
-
-    # Normalizar el vector (obtener dirección)
-    magnitud = math.sqrt(delta_hacia_centro_lat**2 + delta_hacia_centro_lon**2)
-    if magnitud == 0:
-        raise ValueError("El vértice coincide con el centro")
-
-    dir_lat = delta_hacia_centro_lat / magnitud
-    dir_lon = delta_hacia_centro_lon / magnitud
-
     # Calcular metros por grado de longitud en esta latitud
     metros_por_grado_lon = METROS_POR_GRADO_LAT * math.cos(math.radians(lat_origen))
+
+    # Determinar los vértices adyacentes según el vértice de origen
+    # Esto garantiza que la subparcela esté alineada con los bordes de la parcela
+    if vertice_origen == 1:
+        # V1: Lados hacia V2 y hacia V4
+        vertice_lado1 = vertices_parcela[2]  # V2
+        vertice_lado2 = vertices_parcela[4]  # V4
+    elif vertice_origen == 2:
+        # V2: Lados hacia V3 y hacia V1
+        vertice_lado1 = vertices_parcela[3]  # V3
+        vertice_lado2 = vertices_parcela[1]  # V1
+    elif vertice_origen == 3:
+        # V3: Lados hacia V4 y hacia V2
+        vertice_lado1 = vertices_parcela[4]  # V4
+        vertice_lado2 = vertices_parcela[2]  # V2
+    else:  # vertice_origen == 4
+        # V4: Lados hacia V1 y hacia V3
+        vertice_lado1 = vertices_parcela[1]  # V1
+        vertice_lado2 = vertices_parcela[3]  # V3
+
+    # Calcular vector del origen hacia el primer vértice adyacente
+    delta_lat_1 = vertice_lado1[0] - lat_origen
+    delta_lon_1 = vertice_lado1[1] - lon_origen
+    magnitud_1 = math.sqrt(delta_lat_1**2 + delta_lon_1**2)
+    dir1_lat = delta_lat_1 / magnitud_1
+    dir1_lon = delta_lon_1 / magnitud_1
+
+    # Calcular vector del origen hacia el segundo vértice adyacente
+    delta_lat_2 = vertice_lado2[0] - lat_origen
+    delta_lon_2 = vertice_lado2[1] - lon_origen
+    magnitud_2 = math.sqrt(delta_lat_2**2 + delta_lon_2**2)
+    dir2_lat = delta_lat_2 / magnitud_2
+    dir2_lon = delta_lon_2 / magnitud_2
 
     # Convertir 10 metros a grados
     delta_lat_10m = 10.0 / METROS_POR_GRADO_LAT
     delta_lon_10m = 10.0 / metros_por_grado_lon
 
-    # Mover 10m desde el vértice hacia el centro (en dirección al centro)
-    punto_10m_lat = lat_origen + (dir_lat * delta_lat_10m)
-    punto_10m_lon = lon_origen + (dir_lon * delta_lon_10m)
-
-    # Vector perpendicular (rotar 90 grados)
-    perp_lat = -dir_lon
-    perp_lon = dir_lat
-
-    # Los 4 vértices de la subparcela de 10m x 10m
-    # Crear cuadrado con el vértice de origen como una de las esquinas
+    # Crear la subparcela de 10m x 10m alineada con los bordes
     # v1 = vértice de origen
-    # v2 = vértice de origen + 10m perpendicular
-    # v3 = v2 + 10m hacia centro
-    # v4 = v1 + 10m hacia centro
+    # v2 = origen + 10m en dirección del primer lado
+    # v3 = v2 + 10m en dirección del segundo lado
+    # v4 = origen + 10m en dirección del segundo lado
 
-    v1 = (lat_origen, lon_origen)  # Vértice de origen
-    v2 = (lat_origen + (perp_lat * delta_lat_10m),
-          lon_origen + (perp_lon * delta_lon_10m))  # 10m perpendicular
-    v3 = (v2[0] + (dir_lat * delta_lat_10m),
-          v2[1] + (dir_lon * delta_lon_10m))  # v2 + 10m hacia centro
-    v4 = (lat_origen + (dir_lat * delta_lat_10m),
-          lon_origen + (dir_lon * delta_lon_10m))  # v1 + 10m hacia centro
+    v1 = (lat_origen, lon_origen)
+    v2 = (lat_origen + (dir1_lat * delta_lat_10m),
+          lon_origen + (dir1_lon * delta_lon_10m))
+    v3 = (v2[0] + (dir2_lat * delta_lat_10m),
+          v2[1] + (dir2_lon * delta_lon_10m))
+    v4 = (lat_origen + (dir2_lat * delta_lat_10m),
+          lon_origen + (dir2_lon * delta_lon_10m))
 
     # Calcular centro
     centro_lat = (v1[0] + v2[0] + v3[0] + v4[0]) / 4
@@ -176,10 +223,15 @@ def crear_subparcela(
     if not parcela:
         raise HTTPException(status_code=404, detail="Parcela no encontrada")
 
-    # Verificar que el código no existe
-    codigo_existe = db.query(Subparcela).filter(Subparcela.codigo == subparcela.codigo).first()
-    if codigo_existe:
-        raise HTTPException(status_code=400, detail=f"Ya existe una subparcela con el código '{subparcela.codigo}'")
+    # Generar código automáticamente si no se proporciona
+    codigo = subparcela.codigo
+    if not codigo or codigo.strip() == "":
+        codigo = _generar_codigo_subparcela_unico(db)
+    else:
+        # Verificar que el código no existe
+        codigo_existe = db.query(Subparcela).filter(Subparcela.codigo == codigo).first()
+        if codigo_existe:
+            raise HTTPException(status_code=400, detail=f"Ya existe una subparcela con el código '{codigo}'")
 
     # Validar vértice de origen
     if subparcela.vertice_origen not in [1, 2, 3, 4]:
@@ -193,7 +245,7 @@ def crear_subparcela(
 
     # Crear subparcela
     nueva_subparcela = Subparcela(
-        codigo=subparcela.codigo,
+        codigo=codigo,
         nombre=subparcela.nombre,
         parcela_id=subparcela.parcela_id,
         vertice_origen=subparcela.vertice_origen,
@@ -233,6 +285,54 @@ def crear_subparcela(
         "proposito": nueva_subparcela.proposito,
         "estado": nueva_subparcela.estado,
         "message": "Subparcela creada exitosamente"
+    }
+
+
+@router.put("/{subparcela_id}", summary="Actualizar subparcela")
+def actualizar_subparcela(
+    subparcela_id: int,
+    subparcela_update: SubparcelaUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Actualiza los datos de una subparcela existente.
+
+    - **nombre**: Nuevo nombre (opcional)
+    - **proposito**: Nuevo propósito (opcional)
+    - **observaciones**: Nuevas observaciones (opcional)
+    - **estado**: Nuevo estado (opcional)
+    """
+    subparcela = db.query(Subparcela).filter(Subparcela.id == subparcela_id).first()
+
+    if not subparcela:
+        raise HTTPException(status_code=404, detail="Subparcela no encontrada")
+
+    # Actualizar solo los campos proporcionados
+    update_data = subparcela_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(subparcela, field, value)
+
+    db.commit()
+    db.refresh(subparcela)
+
+    return {
+        "id": subparcela.id,
+        "codigo": subparcela.codigo,
+        "nombre": subparcela.nombre,
+        "parcela_id": subparcela.parcela_id,
+        "vertice_origen": subparcela.vertice_origen,
+        "latitud": subparcela.latitud,
+        "longitud": subparcela.longitud,
+        "vertices": [
+            [subparcela.vertice1_lat, subparcela.vertice1_lon],
+            [subparcela.vertice2_lat, subparcela.vertice2_lon],
+            [subparcela.vertice3_lat, subparcela.vertice3_lon],
+            [subparcela.vertice4_lat, subparcela.vertice4_lon],
+        ],
+        "proposito": subparcela.proposito,
+        "estado": subparcela.estado,
+        "observaciones": subparcela.observaciones,
+        "message": "Subparcela actualizada exitosamente"
     }
 
 

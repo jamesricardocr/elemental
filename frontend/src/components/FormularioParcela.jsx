@@ -1,12 +1,12 @@
-import { useState } from 'react'
-import { createParcela } from '../services/api'
+import { useState, useEffect } from 'react'
+import { createParcela, createPuntoReferencia, getZonasReferencia } from '../services/api'
 import '../styles/FormularioParcela.css'
 
-function FormularioParcela({ onParcelaCreada, onClose }) {
+function FormularioParcela({ onParcelaCreada, onClose, zonaInicial = '' }) {
   const [formData, setFormData] = useState({
     codigo: '',
     nombre: '',
-    zona_priorizada: '',
+    zona_priorizada: zonaInicial,
     // Los 4 vértices son ahora el input primario
     vertice1_lat: null,
     vertice1_lon: null,
@@ -28,6 +28,20 @@ function FormularioParcela({ onParcelaCreada, onClose }) {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
   const [centroCalculado, setCentroCalculado] = useState(null)
+  const [zonas, setZonas] = useState([])
+
+  useEffect(() => {
+    cargarZonas()
+  }, [])
+
+  const cargarZonas = async () => {
+    try {
+      const zonasData = await getZonasReferencia()
+      setZonas(zonasData)
+    } catch (error) {
+      console.error('Error cargando zonas:', error)
+    }
+  }
 
   const tiposCobertura = [
     'Bosque primario',
@@ -106,12 +120,6 @@ function FormularioParcela({ onParcelaCreada, onClose }) {
     setError(null)
     setSuccess(false)
 
-    // Validaciones
-    if (!formData.codigo.trim()) {
-      setError('El código de parcela es requerido')
-      return
-    }
-
     // Validar que todos los vértices estén completos
     const vertices = [
       [formData.vertice1_lat, formData.vertice1_lon],
@@ -169,6 +177,24 @@ function FormularioParcela({ onParcelaCreada, onClose }) {
       }
 
       const nuevaParcela = await createParcela(parcelaData)
+
+      // Crear punto de referencia automáticamente en el centro de la parcela
+      if (formData.zona_priorizada) {
+        try {
+          await createPuntoReferencia({
+            zona: formData.zona_priorizada,
+            nombre: formData.nombre || formData.codigo,
+            descripcion: `Centro de la parcela ${formData.codigo}`,
+            fuente: 'Calculado automáticamente al crear la parcela',
+            latitud: centro.lat,
+            longitud: centro.lon
+          })
+        } catch (puntoError) {
+          console.error('Error al crear punto de referencia:', puntoError)
+          // No bloquear la creación de la parcela si falla el punto
+        }
+      }
+
       setSuccess(true)
       setError(null)
 
@@ -234,17 +260,16 @@ function FormularioParcela({ onParcelaCreada, onClose }) {
         <div className="form-grid">
           <div className="form-group">
             <label>
-              Código de Parcela <span className="required">*</span>
+              Código de Parcela
             </label>
             <input
               type="text"
               name="codigo"
               value={formData.codigo}
               onChange={handleChange}
-              placeholder="P001"
-              required
+              placeholder="Dejar vacío para generar automáticamente (P123456)"
             />
-            <small>Código único de identificación</small>
+            <small>Código único (auto-generado si se deja vacío)</small>
           </div>
 
           <div className="form-group">
@@ -260,15 +285,21 @@ function FormularioParcela({ onParcelaCreada, onClose }) {
           </div>
 
           <div className="form-group">
-            <label>Zona Priorizada</label>
-            <input
-              type="text"
+            <label>
+              Zona Priorizada <span className="required">*</span>
+            </label>
+            <select
               name="zona_priorizada"
               value={formData.zona_priorizada}
               onChange={handleChange}
-              placeholder="Zona A - Leticia"
-            />
-            <small>Zona geográfica del proyecto</small>
+              required
+            >
+              <option value="">Seleccione una zona...</option>
+              {zonas.map(zona => (
+                <option key={zona} value={zona}>{zona}</option>
+              ))}
+            </select>
+            <small>Zona geográfica del proyecto (obligatorio)</small>
           </div>
         </div>
 

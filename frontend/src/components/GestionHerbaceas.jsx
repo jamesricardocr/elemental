@@ -21,11 +21,12 @@ import {
   X,
   Scale,
   Percent,
-  Info
+  Info,
+  Square
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-const GestionHerbaceas = ({ parcelaId }) => {
+const GestionHerbaceas = ({ subparcelaId, subparcela, parcelaId }) => {
   const [herbaceas, setHerbaceas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
@@ -41,12 +42,23 @@ const GestionHerbaceas = ({ parcelaId }) => {
 
   useEffect(() => {
     cargarHerbaceas()
-  }, [parcelaId])
+  }, [subparcelaId, parcelaId])
 
   const cargarHerbaceas = async () => {
     try {
       setLoading(true)
-      const data = await fetchHerbaceasParcela(parcelaId)
+
+      // Si hay subparcela, cargar herbáceas de la subparcela; sino, de la parcela
+      const endpoint = subparcelaId
+        ? `/api/v1/herbaceas/subparcela/${subparcelaId}`
+        : `/api/v1/herbaceas/parcela/${parcelaId}`
+
+      const response = await fetch(endpoint)
+      if (!response.ok) {
+        throw new Error('Error al cargar herbáceas')
+      }
+
+      const data = await response.json()
       setHerbaceas(data)
       setError(null)
     } catch (err) {
@@ -105,6 +117,7 @@ const GestionHerbaceas = ({ parcelaId }) => {
     try {
       const herbaceaData = {
         parcela_id: parcelaId,
+        subparcela_id: subparcelaId || null,
         cuadrante_numero: parseInt(nuevaHerbacea.cuadrante_numero),
         peso_fresco: parseFloat(nuevaHerbacea.peso_fresco),
         peso_seco: parseFloat(nuevaHerbacea.peso_seco),
@@ -188,6 +201,50 @@ const GestionHerbaceas = ({ parcelaId }) => {
 
   return (
     <div className="space-y-6">
+      {/* Información de Subparcela */}
+      {subparcela && (
+        <Card className="border-2 border-orange-500 bg-orange-50 dark:bg-orange-950">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orange-500 text-white">
+                  <Square className="h-6 w-6" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">
+                    Trabajando en Subparcela: {subparcela.codigo}
+                  </CardTitle>
+                  <CardDescription className="text-orange-700 dark:text-orange-300">
+                    {subparcela.nombre || 'Sin nombre'} • Tamaño: 10m × 10m (100 m²)
+                  </CardDescription>
+                </div>
+              </div>
+              <Badge variant="outline" className="border-orange-500 text-orange-700">
+                Vértice {subparcela.vertice_origen}
+              </Badge>
+            </div>
+          </CardHeader>
+          {(subparcela.proposito || subparcela.observaciones) && (
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {subparcela.proposito && (
+                  <div>
+                    <span className="font-medium text-orange-700 dark:text-orange-300">Propósito:</span>{' '}
+                    {subparcela.proposito}
+                  </div>
+                )}
+                {subparcela.observaciones && (
+                  <div>
+                    <span className="font-medium text-orange-700 dark:text-orange-300">Observaciones:</span>{' '}
+                    {subparcela.observaciones}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
       {/* Protocolo Info */}
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader className="pb-3">
@@ -280,7 +337,11 @@ const GestionHerbaceas = ({ parcelaId }) => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Herbáceas Registradas ({herbaceas.length})</h3>
-          <p className="text-sm text-muted-foreground">Registros de vegetación herbácea por cuadrante</p>
+          <p className="text-sm text-muted-foreground">
+            {subparcela
+              ? `Registros de vegetación herbácea de la subparcela ${subparcela.codigo} (10m × 10m)`
+              : 'Registros de vegetación herbácea por cuadrante'}
+          </p>
         </div>
         <Button
           onClick={() => setMostrarFormulario(!mostrarFormulario)}

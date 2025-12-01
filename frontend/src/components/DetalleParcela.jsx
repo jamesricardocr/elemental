@@ -32,6 +32,8 @@ const DetalleParcela = ({ codigo, parcelaId, onVolver }) => {
   const [tabActiva, setTabActiva] = useState(searchParams.get('tab') || 'info')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [subparcelaSeleccionada, setSubparcelaSeleccionada] = useState(null)
+  const [tipoGestionSubparcela, setTipoGestionSubparcela] = useState(null)
 
   useEffect(() => {
     cargarParcela()
@@ -62,6 +64,30 @@ const DetalleParcela = ({ codigo, parcelaId, onVolver }) => {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleGestionarDatosSubparcela = (subparcela, tipo) => {
+    setSubparcelaSeleccionada(subparcela)
+    setTipoGestionSubparcela(tipo)
+
+    // Cambiar a la tab correspondiente
+    if (tipo === 'arboles') {
+      setTabActiva('arboles')
+      setSearchParams({ tab: 'arboles' })
+    } else if (tipo === 'necromasa') {
+      setTabActiva('necromasa')
+      setSearchParams({ tab: 'necromasa' })
+    } else if (tipo === 'herbaceas') {
+      setTabActiva('herbaceas')
+      setSearchParams({ tab: 'herbaceas' })
+    }
+  }
+
+  const volverASubparcelas = () => {
+    setSubparcelaSeleccionada(null)
+    setTipoGestionSubparcela(null)
+    setTabActiva('subparcelas')
+    setSearchParams({ tab: 'subparcelas' })
   }
 
   const tabs = [
@@ -284,19 +310,83 @@ const DetalleParcela = ({ codigo, parcelaId, onVolver }) => {
         )}
 
         {tabActiva === 'subparcelas' && (
-          <GestionSubparcelas parcelaId={parcela.id} parcela={parcela} />
+          <GestionSubparcelas
+            parcelaId={parcela.id}
+            parcela={parcela}
+            onGestionarDatos={handleGestionarDatosSubparcela}
+          />
         )}
 
         {tabActiva === 'arboles' && (
-          <GestionArboles parcelaId={parcela.id} />
+          <div className="space-y-4">
+            {subparcelaSeleccionada && (
+              <Alert>
+                <Square className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>
+                    Gestionando árboles de la subparcela: <strong>{subparcelaSeleccionada.codigo}</strong>
+                  </span>
+                  <Button variant="outline" size="sm" onClick={volverASubparcelas}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Volver a Subparcelas
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            <GestionArboles
+              parcelaId={parcela.id}
+              subparcelaId={subparcelaSeleccionada?.id}
+              subparcela={subparcelaSeleccionada}
+            />
+          </div>
         )}
 
         {tabActiva === 'necromasa' && (
-          <GestionNecromasa parcelaId={parcela.id} />
+          <div className="space-y-4">
+            {subparcelaSeleccionada && (
+              <Alert>
+                <Square className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>
+                    Gestionando necromasa de la subparcela: <strong>{subparcelaSeleccionada.codigo}</strong>
+                  </span>
+                  <Button variant="outline" size="sm" onClick={volverASubparcelas}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Volver a Subparcelas
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            <GestionNecromasa
+              parcelaId={parcela.id}
+              subparcelaId={subparcelaSeleccionada?.id}
+              subparcela={subparcelaSeleccionada}
+            />
+          </div>
         )}
 
         {tabActiva === 'herbaceas' && (
-          <GestionHerbaceas parcelaId={parcela.id} />
+          <div className="space-y-4">
+            {subparcelaSeleccionada && (
+              <Alert>
+                <Square className="h-4 w-4" />
+                <AlertDescription className="flex items-center justify-between">
+                  <span>
+                    Gestionando herbáceas de la subparcela: <strong>{subparcelaSeleccionada.codigo}</strong>
+                  </span>
+                  <Button variant="outline" size="sm" onClick={volverASubparcelas}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Volver a Subparcelas
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+            <GestionHerbaceas
+              parcelaId={parcela.id}
+              subparcelaId={subparcelaSeleccionada?.id}
+              subparcela={subparcelaSeleccionada}
+            />
+          </div>
         )}
 
         {tabActiva === 'calculos' && (

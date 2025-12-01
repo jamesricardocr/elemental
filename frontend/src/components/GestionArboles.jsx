@@ -23,11 +23,12 @@ import {
   X,
   TrendingUp,
   Ruler,
-  BarChart3
+  BarChart3,
+  Square
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-const GestionArboles = ({ parcelaId }) => {
+const GestionArboles = ({ subparcelaId, subparcela, parcelaId }) => {
   const [arboles, setArboles] = useState([])
   const [especies, setEspecies] = useState([])
   const [estadisticas, setEstadisticas] = useState(null)
@@ -48,17 +49,28 @@ const GestionArboles = ({ parcelaId }) => {
 
   useEffect(() => {
     cargarDatos()
-  }, [parcelaId])
+  }, [subparcelaId, parcelaId])
 
   const cargarDatos = async () => {
     try {
       setLoading(true)
-      const [arbolesData, especiesData, estadisticasData] = await Promise.all([
-        fetchArbolesParcela(parcelaId),
+
+      // Si hay subparcela, cargar árboles de la subparcela; sino, de la parcela
+      const endpoint = subparcelaId
+        ? `/api/v1/arboles/subparcela/${subparcelaId}`
+        : `/api/v1/arboles/parcela/${parcelaId}`
+
+      const [arbolesResponse, especiesData, estadisticasData] = await Promise.all([
+        fetch(endpoint),
         fetchEspecies(),
         getEstadisticasArboles(parcelaId)
       ])
 
+      if (!arbolesResponse.ok) {
+        throw new Error('Error al cargar árboles')
+      }
+
+      const arbolesData = await arbolesResponse.json()
       setArboles(arbolesData)
       setEspecies(especiesData)
       setEstadisticas(estadisticasData)
@@ -110,7 +122,8 @@ const GestionArboles = ({ parcelaId }) => {
     try {
       const arbolData = {
         parcela_id: parcelaId,
-        numero: parseInt(nuevoArbol.numero),
+        subparcela_id: subparcelaId || null,
+        numero_arbol: parseInt(nuevoArbol.numero),
         dap: parseFloat(nuevoArbol.dap),
         altura: parseFloat(nuevoArbol.altura),
         especie_id: parseInt(nuevoArbol.especie_id),
@@ -176,6 +189,50 @@ const GestionArboles = ({ parcelaId }) => {
 
   return (
     <div className="space-y-6">
+      {/* Información de Subparcela */}
+      {subparcela && (
+        <Card className="border-2 border-orange-500 bg-orange-50 dark:bg-orange-950">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orange-500 text-white">
+                  <Square className="h-6 w-6" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">
+                    Trabajando en Subparcela: {subparcela.codigo}
+                  </CardTitle>
+                  <CardDescription className="text-orange-700 dark:text-orange-300">
+                    {subparcela.nombre || 'Sin nombre'} • Tamaño: 10m × 10m (100 m²)
+                  </CardDescription>
+                </div>
+              </div>
+              <Badge variant="outline" className="border-orange-500 text-orange-700">
+                Vértice {subparcela.vertice_origen}
+              </Badge>
+            </div>
+          </CardHeader>
+          {(subparcela.proposito || subparcela.observaciones) && (
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                {subparcela.proposito && (
+                  <div>
+                    <span className="font-medium text-orange-700 dark:text-orange-300">Propósito:</span>{' '}
+                    {subparcela.proposito}
+                  </div>
+                )}
+                {subparcela.observaciones && (
+                  <div>
+                    <span className="font-medium text-orange-700 dark:text-orange-300">Observaciones:</span>{' '}
+                    {subparcela.observaciones}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
       {/* Estadísticas */}
       {estadisticas && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -236,7 +293,11 @@ const GestionArboles = ({ parcelaId }) => {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Árboles Registrados ({arboles.length})</h3>
-          <p className="text-sm text-muted-foreground">Gestiona los árboles de la parcela</p>
+          <p className="text-sm text-muted-foreground">
+            {subparcela
+              ? `Gestiona los árboles de la subparcela ${subparcela.codigo} (10m × 10m)`
+              : 'Gestiona los árboles de la parcela completa'}
+          </p>
         </div>
         <Button
           onClick={() => setMostrarFormulario(!mostrarFormulario)}

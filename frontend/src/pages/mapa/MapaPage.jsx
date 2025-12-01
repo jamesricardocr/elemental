@@ -234,6 +234,7 @@ function MapaPage() {
               <FormularioParcela
                 onParcelaCreada={handleParcelaCreada}
                 onClose={() => setVistaActual('mapa')}
+                zonaInicial={filters.zona !== 'Todas' ? filters.zona : ''}
               />
             </div>
           </div>

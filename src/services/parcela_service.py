@@ -7,6 +7,7 @@ from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_
 from datetime import date
+import random
 
 from src.models.parcela import Parcela
 from src.utils.coordinate_converter import CoordinateConverter
@@ -27,11 +28,37 @@ class ParcelaService:
         self.db = db
         self.converter = CoordinateConverter(UTM_ZONE_AMAZONAS)
 
+    def _generar_codigo_unico(self, prefijo: str = "P") -> str:
+        """
+        Genera un código único de 6 dígitos para una parcela.
+
+        Args:
+            prefijo: Prefijo opcional (por defecto "P" para Parcela)
+
+        Returns:
+            Código único en formato P123456
+        """
+        max_intentos = 100
+        for _ in range(max_intentos):
+            # Generar 6 dígitos aleatorios
+            numero = random.randint(100000, 999999)
+            codigo = f"{prefijo}{numero}"
+
+            # Verificar que no existe
+            existente = self.db.query(Parcela).filter(Parcela.codigo == codigo).first()
+            if not existente:
+                return codigo
+
+        # Si después de 100 intentos no encontró uno único, usar timestamp
+        import time
+        timestamp = str(int(time.time()))[-6:]
+        return f"{prefijo}{timestamp}"
+
     # ========== CRUD Básico ==========
 
     def crear_parcela(
         self,
-        codigo: str,
+        codigo: Optional[str] = None,
         nombre: Optional[str] = None,
         zona_priorizada: Optional[str] = None,
         latitud: Optional[float] = None,
@@ -43,7 +70,7 @@ class ParcelaService:
         Crea una nueva parcela.
 
         Args:
-            codigo: Código único de la parcela
+            codigo: Código único de la parcela (si no se proporciona, se genera automáticamente)
             nombre: Nombre descriptivo
             zona_priorizada: Zona geográfica
             latitud: Latitud del centro
@@ -57,6 +84,10 @@ class ParcelaService:
         Raises:
             ValueError: Si los datos no son válidos
         """
+        # Generar código automáticamente si no se proporciona
+        if not codigo or codigo.strip() == "":
+            codigo = self._generar_codigo_unico()
+
         # Validar datos básicos
         es_valido, mensaje = validar_parcela(codigo, latitud, longitud)
         if not es_valido:

@@ -9,7 +9,7 @@ from datetime import date, datetime
 
 class ParcelaBase(BaseModel):
     """Schema base para parcela"""
-    codigo: str = Field(..., min_length=1, max_length=50, description="Código único de la parcela")
+    codigo: Optional[str] = Field(None, min_length=1, max_length=50, description="Código único de la parcela (auto-generado si no se proporciona)")
     nombre: Optional[str] = Field(None, max_length=200, description="Nombre descriptivo")
     zona_priorizada: Optional[str] = Field(None, max_length=100, description="Zona geográfica priorizada")
 
