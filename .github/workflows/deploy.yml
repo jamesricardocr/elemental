@@ -70,6 +70,8 @@ jobs:
           migrations \
           scripts \
           data \
+          alembic \
+          alembic.ini \
           requirements.txt \
           init_db.py \
           load_puntos_referencia.py \
