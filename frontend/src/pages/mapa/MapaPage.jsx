@@ -4,13 +4,14 @@ import MapView from '../../components/MapView'
 import FormularioParcela from '../../components/FormularioParcela'
 import FormularioPuntoReferencia from '../../components/FormularioPuntoReferencia'
 import FormularioNuevaZona from '../../components/FormularioNuevaZona'
+import GestionZonas from '../../components/GestionZonas'
 import SeleccionModoCreacion from '../../components/SeleccionModoCreacion'
 import ParcelaInteractiva from '../../components/ParcelaInteractiva'
 import { fetchParcelas, getPuntosReferencia, getZonasReferencia, fetchTodasSubparcelas } from '../../services/api'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { RefreshCw, Plus, MapPin, Navigation } from 'lucide-react'
+import { RefreshCw, Plus, MapPin, Navigation, Settings } from 'lucide-react'
 
 function MapaPage() {
   const location = useLocation()
@@ -22,7 +23,7 @@ function MapaPage() {
     estado: 'Todos'
   })
   const [loading, setLoading] = useState(true)
-  const [vistaActual, setVistaActual] = useState('mapa') // 'mapa', 'formulario', 'interactivo', 'formularioPunto', 'formularioZona'
+  const [vistaActual, setVistaActual] = useState('mapa') // 'mapa', 'formulario', 'interactivo', 'formularioPunto', 'formularioZona', 'gestionZonas'
   const [parcelaSeleccionada, setParcelaSeleccionada] = useState(location.state?.parcelaSeleccionada || null)
   const [puntosReferencia, setPuntosReferencia] = useState([])
   const [subparcelas, setSubparcelas] = useState([])
@@ -149,6 +150,15 @@ function MapaPage() {
     setVistaActual('mapa')
   }
 
+  const handleZonaEliminada = (zonaEliminada) => {
+    // Si la zona eliminada era la filtrada actualmente, resetear filtro
+    if (filters.zona === zonaEliminada.nombre) {
+      setFilters({ ...filters, zona: 'Todas' })
+    }
+    loadZonas()
+    loadPuntosReferencia()
+  }
+
   return (
     <div className="h-screen flex flex-col overflow-hidden">
       {/* Header con filtros */}
@@ -199,6 +209,10 @@ function MapaPage() {
             <Button variant="outline" size="sm" onClick={loadParcelas}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Actualizar
+            </Button>
+            <Button variant="outline" onClick={() => setVistaActual('gestionZonas')}>
+              <Settings className="h-4 w-4 mr-2" />
+              Gestionar Zonas
             </Button>
             <Button variant="outline" onClick={() => setVistaActual('formularioZona')}>
               <MapPin className="h-4 w-4 mr-2" />
@@ -262,6 +276,13 @@ function MapaPage() {
       {vistaActual === 'formularioZona' && (
         <FormularioNuevaZona
           onZonaCreada={handleZonaCreada}
+          onClose={() => setVistaActual('mapa')}
+        />
+      )}
+
+      {vistaActual === 'gestionZonas' && (
+        <GestionZonas
+          onZonaEliminada={handleZonaEliminada}
           onClose={() => setVistaActual('mapa')}
         />
       )}

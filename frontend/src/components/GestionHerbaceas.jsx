@@ -12,33 +12,38 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Textarea } from '@/components/ui/textarea'
 import {
   Sprout,
   Plus,
   Trash2,
   X,
   Scale,
-  Percent,
-  Info,
-  Square
+  Square,
+  ArrowLeft
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-const GestionHerbaceas = ({ subparcelaId, subparcela, parcelaId }) => {
+const GestionHerbaceas = ({ subparcelaId, subparcela, parcelaId, onVolver }) => {
   const [herbaceas, setHerbaceas] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
 
-  const [nuevaHerbacea, setNuevaHerbacea] = useState({
-    cuadrante_numero: '',
-    peso_fresco: '',
-    peso_seco: '',
-    cobertura_porcentaje: '',
+  const getFormularioInicial = () => ({
+    tipo_agrupacion: 'gramineas',
+    n_individuos: '',
+    altura_maxima: '',
+    altura_minima: '',
+    altura_promedio: '',
+    pf_total: '',
+    pf_submuestra: '',
+    ps_submuestra: '',
     observaciones: ''
   })
+
+  const [nuevaHerbacea, setNuevaHerbacea] = useState(getFormularioInicial())
 
   useEffect(() => {
     cargarHerbaceas()
@@ -48,7 +53,6 @@ const GestionHerbaceas = ({ subparcelaId, subparcela, parcelaId }) => {
     try {
       setLoading(true)
 
-      // Si hay subparcela, cargar herbáceas de la subparcela; sino, de la parcela
       const endpoint = subparcelaId
         ? `/api/v1/herbaceas/subparcela/${subparcelaId}`
         : `/api/v1/herbaceas/parcela/${parcelaId}`
@@ -78,30 +82,23 @@ const GestionHerbaceas = ({ subparcelaId, subparcela, parcelaId }) => {
   }
 
   const validarFormulario = () => {
-    if (!nuevaHerbacea.cuadrante_numero || !nuevaHerbacea.peso_fresco || !nuevaHerbacea.peso_seco) {
-      toast.error('Por favor complete todos los campos obligatorios')
+    if (!nuevaHerbacea.pf_total || !nuevaHerbacea.pf_submuestra || !nuevaHerbacea.ps_submuestra) {
+      toast.error('Complete PFtotal, PFsub y PSsub')
       return false
     }
 
-    const pesoFresco = parseFloat(nuevaHerbacea.peso_fresco)
-    const pesoSeco = parseFloat(nuevaHerbacea.peso_seco)
+    const pfTotal = parseFloat(nuevaHerbacea.pf_total)
+    const pfSub = parseFloat(nuevaHerbacea.pf_submuestra)
+    const psSub = parseFloat(nuevaHerbacea.ps_submuestra)
 
-    if (pesoFresco <= 0 || pesoSeco <= 0) {
+    if (pfTotal <= 0 || pfSub <= 0 || psSub <= 0) {
       toast.error('Los pesos deben ser mayores a 0')
       return false
     }
 
-    if (pesoSeco > pesoFresco) {
-      toast.error('El peso seco no puede ser mayor al peso fresco')
+    if (psSub > pfSub) {
+      toast.error('El peso seco no puede ser mayor al peso fresco de la submuestra')
       return false
-    }
-
-    if (nuevaHerbacea.cobertura_porcentaje) {
-      const cobertura = parseFloat(nuevaHerbacea.cobertura_porcentaje)
-      if (cobertura < 0 || cobertura > 100) {
-        toast.error('La cobertura debe estar entre 0 y 100%')
-        return false
-      }
     }
 
     return true
@@ -118,36 +115,31 @@ const GestionHerbaceas = ({ subparcelaId, subparcela, parcelaId }) => {
       const herbaceaData = {
         parcela_id: parcelaId,
         subparcela_id: subparcelaId || null,
-        cuadrante_numero: parseInt(nuevaHerbacea.cuadrante_numero),
-        peso_fresco: parseFloat(nuevaHerbacea.peso_fresco),
-        peso_seco: parseFloat(nuevaHerbacea.peso_seco),
-        cobertura_porcentaje: nuevaHerbacea.cobertura_porcentaje
-          ? parseFloat(nuevaHerbacea.cobertura_porcentaje)
-          : null,
+        tipo_agrupacion: nuevaHerbacea.tipo_agrupacion,
+        n_individuos: nuevaHerbacea.n_individuos ? parseInt(nuevaHerbacea.n_individuos) : null,
+        altura_maxima: nuevaHerbacea.altura_maxima ? parseFloat(nuevaHerbacea.altura_maxima) : null,
+        altura_minima: nuevaHerbacea.altura_minima ? parseFloat(nuevaHerbacea.altura_minima) : null,
+        altura_promedio: nuevaHerbacea.altura_promedio ? parseFloat(nuevaHerbacea.altura_promedio) : null,
+        pf_total: parseFloat(nuevaHerbacea.pf_total),
+        pf_submuestra: parseFloat(nuevaHerbacea.pf_submuestra),
+        ps_submuestra: parseFloat(nuevaHerbacea.ps_submuestra),
         observaciones: nuevaHerbacea.observaciones || null
       }
 
       await createHerbaceas(herbaceaData)
 
-      setNuevaHerbacea({
-        cuadrante_numero: '',
-        peso_fresco: '',
-        peso_seco: '',
-        cobertura_porcentaje: '',
-        observaciones: ''
-      })
-
+      setNuevaHerbacea(getFormularioInicial())
       setMostrarFormulario(false)
       await cargarHerbaceas()
       toast.success('Herbácea registrada exitosamente')
     } catch (err) {
       console.error('Error al crear herbácea:', err)
-      toast.error('Error al registrar la herbácea: ' + (err.response?.data?.detail || err.message))
+      toast.error('Error al registrar herbácea: ' + (err.message || 'Error desconocido'))
     }
   }
 
-  const handleEliminar = async (herbaceaId, cuadrante) => {
-    if (!confirm(`¿Está seguro de eliminar el registro del cuadrante #${cuadrante}?`)) {
+  const handleEliminar = async (herbaceaId, tipo) => {
+    if (!confirm(`¿Está seguro de eliminar este registro de ${tipo}?`)) {
       return
     }
 
@@ -161,27 +153,6 @@ const GestionHerbaceas = ({ subparcelaId, subparcela, parcelaId }) => {
     }
   }
 
-  const calcularEstadisticas = () => {
-    if (herbaceas.length === 0) return null
-
-    const totalPesoFresco = herbaceas.reduce((sum, h) => sum + h.peso_fresco, 0)
-    const totalPesoSeco = herbaceas.reduce((sum, h) => sum + h.peso_seco, 0)
-    const herbaceasConCobertura = herbaceas.filter(h => h.cobertura_porcentaje !== null)
-    const coberturaPromedio = herbaceasConCobertura.length > 0
-      ? herbaceasConCobertura.reduce((sum, h) => sum + h.cobertura_porcentaje, 0) / herbaceasConCobertura.length
-      : 0
-
-    return {
-      total: herbaceas.length,
-      totalPesoFresco,
-      totalPesoSeco,
-      promedioPesoSeco: totalPesoSeco / herbaceas.length,
-      coberturaPromedio
-    }
-  }
-
-  const estadisticas = calcularEstadisticas()
-
   if (loading) {
     return (
       <div className="space-y-4">
@@ -191,17 +162,9 @@ const GestionHerbaceas = ({ subparcelaId, subparcela, parcelaId }) => {
     )
   }
 
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    )
-  }
-
   return (
     <div className="space-y-6">
-      {/* Información de Subparcela */}
+      {/* Indicador de subparcela */}
       {subparcela && (
         <Card className="border-2 border-orange-500 bg-orange-50 dark:bg-orange-950">
           <CardHeader className="pb-3">
@@ -214,245 +177,235 @@ const GestionHerbaceas = ({ subparcelaId, subparcela, parcelaId }) => {
                   <CardTitle className="text-lg">
                     Trabajando en Subparcela: {subparcela.codigo}
                   </CardTitle>
-                  <CardDescription className="text-orange-700 dark:text-orange-300">
+                  <CardDescription className="text-orange-700">
                     {subparcela.nombre || 'Sin nombre'} • Tamaño: 10m × 10m (100 m²)
                   </CardDescription>
                 </div>
               </div>
-              <Badge variant="outline" className="border-orange-500 text-orange-700">
-                Vértice {subparcela.vertice_origen}
-              </Badge>
-            </div>
-          </CardHeader>
-          {(subparcela.proposito || subparcela.observaciones) && (
-            <CardContent className="pt-0">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                {subparcela.proposito && (
-                  <div>
-                    <span className="font-medium text-orange-700 dark:text-orange-300">Propósito:</span>{' '}
-                    {subparcela.proposito}
-                  </div>
-                )}
-                {subparcela.observaciones && (
-                  <div>
-                    <span className="font-medium text-orange-700 dark:text-orange-300">Observaciones:</span>{' '}
-                    {subparcela.observaciones}
-                  </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="border-orange-500 text-orange-700">
+                  Vértice {subparcela.vertice_origen}
+                </Badge>
+                {onVolver && (
+                  <Button variant="outline" size="sm" onClick={onVolver}>
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    Volver a Subparcelas
+                  </Button>
                 )}
               </div>
-            </CardContent>
-          )}
+            </div>
+          </CardHeader>
         </Card>
       )}
 
-      {/* Protocolo Info */}
-      <Card className="border-primary/20 bg-primary/5">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Info className="h-4 w-4 text-primary" />
-            Protocolo de Vegetación Herbácea
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
-            <div className="space-y-1">
-              <p className="font-semibold text-foreground">Tamaño de Cuadrante:</p>
-              <p className="text-muted-foreground">1m × 1m (1 m²)</p>
-            </div>
-            <div className="space-y-1">
-              <p className="font-semibold text-foreground">Procedimiento:</p>
-              <p className="text-muted-foreground">Cortar toda vegetación herbácea a ras del suelo</p>
-            </div>
-            <div className="space-y-1">
-              <p className="font-semibold text-foreground">Medición:</p>
-              <p className="text-muted-foreground">Pesar biomasa fresca, tomar submuestra para secado</p>
-            </div>
-            <div className="space-y-1">
-              <p className="font-semibold text-foreground">Extrapolación:</p>
-              <p className="text-muted-foreground">Calcular biomasa seca por unidad de área (kg/ha)</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Estadísticas */}
-      {estadisticas && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Sprout className="h-4 w-4 text-primary" />
-                Total Cuadrantes
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{estadisticas.total}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Scale className="h-4 w-4 text-primary" />
-                Peso Seco Total
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{estadisticas.totalPesoSeco.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground mt-1">kg</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Scale className="h-4 w-4 text-primary" />
-                Promedio Peso Seco
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{estadisticas.promedioPesoSeco.toFixed(2)}</div>
-              <p className="text-xs text-muted-foreground mt-1">kg por cuadrante</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <Percent className="h-4 w-4 text-primary" />
-                Cobertura Promedio
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">
-                {estadisticas.coberturaPromedio > 0 ? estadisticas.coberturaPromedio.toFixed(1) : 'N/A'}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1">% de cobertura</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Header con botón agregar */}
+      {/* Header con botón */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">Herbáceas Registradas ({herbaceas.length})</h3>
-          <p className="text-sm text-muted-foreground">
-            {subparcela
-              ? `Registros de vegetación herbácea de la subparcela ${subparcela.codigo} (10m × 10m)`
-              : 'Registros de vegetación herbácea por cuadrante'}
+          <h2 className="text-2xl font-bold flex items-center gap-2">
+            <Sprout className="h-6 w-6 text-green-600" />
+            Medición de Vegetación Herbácea
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Cuadro de 2×2 m (4m²) - Factor de extrapolación: 250
           </p>
         </div>
-        <Button
-          onClick={() => setMostrarFormulario(!mostrarFormulario)}
-          className={mostrarFormulario ? 'bg-destructive hover:bg-destructive/90' : ''}
-        >
+        <Button onClick={() => setMostrarFormulario(!mostrarFormulario)}>
           {mostrarFormulario ? (
             <>
-              <X className="mr-2 h-4 w-4" />
+              <X className="h-4 w-4 mr-2" />
               Cancelar
             </>
           ) : (
             <>
-              <Plus className="mr-2 h-4 w-4" />
-              Agregar Herbácea
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Registro
             </>
           )}
         </Button>
       </div>
 
+      {error && (
+        <Alert variant="destructive">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
       {/* Formulario */}
       {mostrarFormulario && (
         <Card>
           <CardHeader>
-            <CardTitle>Registrar Vegetación Herbácea en Cuadrante</CardTitle>
-            <CardDescription>Complete la información del cuadrante de 1m × 1m</CardDescription>
+            <CardTitle>Nuevo Registro de Vegetación Herbácea</CardTitle>
+            <CardDescription>
+              Complete los campos según el protocolo de medición en cuadro de 2×2 m
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cuadrante_numero">
-                    Número de Cuadrante (1m × 1m) <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="cuadrante_numero"
-                    type="number"
-                    name="cuadrante_numero"
-                    value={nuevaHerbacea.cuadrante_numero}
-                    onChange={handleInputChange}
-                    placeholder="Ej: 1"
-                    required
-                  />
-                </div>
+              {/* Alerta con fórmulas */}
+              <Alert>
+                <AlertDescription className="text-sm">
+                  <strong>CUADRO:</strong> 2×2 m (4m²)
+                  <br />
+                  <strong>Agrupación:</strong> gramíneas, helechos, plántulas, hojas anchas, etc.
+                  <br />
+                  <strong>Fórmulas:</strong> Fs = PSsub / PFsub → Biomasa = PFtotal × Fs → B₀.₁ha = Biomasa × 250 → C = B₀.₁ha × 0,47
+                </AlertDescription>
+              </Alert>
 
-                <div className="space-y-2">
-                  <Label htmlFor="cobertura_porcentaje">Cobertura (%)</Label>
-                  <Input
-                    id="cobertura_porcentaje"
-                    type="number"
-                    step="0.1"
-                    name="cobertura_porcentaje"
-                    value={nuevaHerbacea.cobertura_porcentaje}
-                    onChange={handleInputChange}
-                    placeholder="Ej: 75.5"
-                    min="0"
-                    max="100"
-                  />
-                  <p className="text-xs text-muted-foreground">Estimación visual del área cubierta</p>
-                </div>
+              {/* Tipo de agrupación */}
+              <div className="space-y-2">
+                <Label>Tipo de Agrupación <span className="text-red-500">*</span></Label>
+                <Select
+                  value={nuevaHerbacea.tipo_agrupacion}
+                  onValueChange={(value) => setNuevaHerbacea(prev => ({ ...prev, tipo_agrupacion: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="gramineas">Gramíneas</SelectItem>
+                    <SelectItem value="helechos">Helechos</SelectItem>
+                    <SelectItem value="plantulas">Plántulas</SelectItem>
+                    <SelectItem value="hojas_anchas">Hojas Anchas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="peso_fresco">
-                    Peso Fresco (kg) <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="peso_fresco"
-                    type="number"
-                    step="0.01"
-                    name="peso_fresco"
-                    value={nuevaHerbacea.peso_fresco}
-                    onChange={handleInputChange}
-                    placeholder="Ej: 2.50"
-                    min="0.01"
-                    required
-                  />
-                </div>
+              <Separator />
 
-                <div className="space-y-2">
-                  <Label htmlFor="peso_seco">
-                    Peso Seco (kg) <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="peso_seco"
-                    type="number"
-                    step="0.01"
-                    name="peso_seco"
-                    value={nuevaHerbacea.peso_seco}
-                    onChange={handleInputChange}
-                    placeholder="Ej: 1.20"
-                    min="0.01"
-                    required
-                  />
-                  <p className="text-xs text-muted-foreground">Después del secado en laboratorio</p>
-                </div>
+              {/* Conteo y alturas */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm">Conteo de Individuos y Alturas</h3>
 
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="observaciones">Observaciones</Label>
-                  <Textarea
-                    id="observaciones"
-                    name="observaciones"
-                    value={nuevaHerbacea.observaciones}
-                    onChange={handleInputChange}
-                    placeholder="Observaciones adicionales..."
-                    rows={3}
-                  />
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="n_individuos">N° de individuos</Label>
+                    <Input
+                      id="n_individuos"
+                      name="n_individuos"
+                      type="number"
+                      value={nuevaHerbacea.n_individuos}
+                      onChange={handleInputChange}
+                      placeholder="Contar individuos"
+                    />
+                    <p className="text-xs text-muted-foreground">Tipo agrupado en cuadro 2×2m</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="altura_maxima">h max (m)</Label>
+                    <Input
+                      id="altura_maxima"
+                      name="altura_maxima"
+                      type="number"
+                      step="0.01"
+                      value={nuevaHerbacea.altura_maxima}
+                      onChange={handleInputChange}
+                      placeholder="Altura máxima"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="altura_minima">h min (m)</Label>
+                    <Input
+                      id="altura_minima"
+                      name="altura_minima"
+                      type="number"
+                      step="0.01"
+                      value={nuevaHerbacea.altura_minima}
+                      onChange={handleInputChange}
+                      placeholder="Altura mínima"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="altura_promedio">h prom (m)</Label>
+                    <Input
+                      id="altura_promedio"
+                      name="altura_promedio"
+                      type="number"
+                      step="0.01"
+                      value={nuevaHerbacea.altura_promedio}
+                      onChange={handleInputChange}
+                      placeholder="Altura promedio"
+                    />
+                  </div>
                 </div>
               </div>
 
-              <div className="flex justify-end">
-                <Button type="submit" className="bg-primary">
-                  Guardar Herbácea
+              <Separator />
+
+              {/* Pesos de campo */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm">Pesos de Campo</h3>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="pf_total">PFtotal (kg) <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="pf_total"
+                      name="pf_total"
+                      type="number"
+                      step="0.001"
+                      value={nuevaHerbacea.pf_total}
+                      onChange={handleInputChange}
+                      placeholder="Peso fresco total"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">Cortar y registrar peso fresco total del cuadrante 2×2m</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="pf_submuestra">PFsub (kg) <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="pf_submuestra"
+                      name="pf_submuestra"
+                      type="number"
+                      step="0.001"
+                      value={nuevaHerbacea.pf_submuestra}
+                      onChange={handleInputChange}
+                      placeholder="Peso fresco submuestra"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">Pesar submuestra entre 200-300 g</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="ps_submuestra">PSsub (kg) <span className="text-red-500">*</span></Label>
+                    <Input
+                      id="ps_submuestra"
+                      name="ps_submuestra"
+                      type="number"
+                      step="0.001"
+                      value={nuevaHerbacea.ps_submuestra}
+                      onChange={handleInputChange}
+                      placeholder="Peso seco submuestra"
+                      required
+                    />
+                    <p className="text-xs text-muted-foreground">Registrar peso seco de la submuestra</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Observaciones */}
+              <div className="space-y-2">
+                <Label htmlFor="observaciones">Observaciones</Label>
+                <Input
+                  id="observaciones"
+                  name="observaciones"
+                  value={nuevaHerbacea.observaciones}
+                  onChange={handleInputChange}
+                  placeholder="Notas adicionales"
+                />
+              </div>
+
+              {/* Botones */}
+              <div className="flex gap-2 pt-4">
+                <Button type="button" variant="outline" onClick={() => setMostrarFormulario(false)} className="flex-1">
+                  Cancelar
+                </Button>
+                <Button type="submit" className="flex-1">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Registrar
                 </Button>
               </div>
             </form>
@@ -460,33 +413,38 @@ const GestionHerbaceas = ({ subparcelaId, subparcela, parcelaId }) => {
         </Card>
       )}
 
-      <Separator />
-
-      {/* Tabla de herbáceas */}
+      {/* Lista de registros */}
       {herbaceas.length === 0 ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <Sprout className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-lg text-muted-foreground text-center">
-              No hay herbáceas registradas.<br />
-              Haga clic en "Agregar Herbácea" para comenzar.
+            <Sprout className="h-12 w-12 text-muted-foreground mb-3" />
+            <p className="text-muted-foreground">No hay registros de herbáceas</p>
+            <p className="text-sm text-muted-foreground">
+              {subparcela
+                ? `Agregue el primer registro para la subparcela ${subparcela.codigo}`
+                : 'Agregue el primer registro'}
             </p>
           </CardContent>
         </Card>
       ) : (
         <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Scale className="h-5 w-5" />
+              Registros de Herbáceas ({herbaceas.length})
+            </CardTitle>
+          </CardHeader>
           <CardContent className="p-0">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Cuadrante</TableHead>
-                    <TableHead>Peso Fresco (kg)</TableHead>
-                    <TableHead>Peso Seco (kg)</TableHead>
-                    <TableHead>Relación PS/PF</TableHead>
-                    <TableHead>Cobertura (%)</TableHead>
-                    <TableHead>Biomasa por Ha</TableHead>
-                    <TableHead>Observaciones</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>N° Ind.</TableHead>
+                    <TableHead>h prom (m)</TableHead>
+                    <TableHead>Biomasa Seca (kg)</TableHead>
+                    <TableHead>B 0.1ha (kg)</TableHead>
+                    <TableHead>Carbono (kg)</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -494,34 +452,25 @@ const GestionHerbaceas = ({ subparcelaId, subparcela, parcelaId }) => {
                   {herbaceas.map(herbacea => (
                     <TableRow key={herbacea.id}>
                       <TableCell>
-                        <Badge variant="secondary">#{herbacea.cuadrante_numero}</Badge>
+                        <Badge variant="outline">
+                          {herbacea.tipo_agrupacion === 'gramineas' && 'Gramíneas'}
+                          {herbacea.tipo_agrupacion === 'helechos' && 'Helechos'}
+                          {herbacea.tipo_agrupacion === 'plantulas' && 'Plántulas'}
+                          {herbacea.tipo_agrupacion === 'hojas_anchas' && 'Hojas Anchas'}
+                        </Badge>
                       </TableCell>
-                      <TableCell>{herbacea.peso_fresco.toFixed(2)}</TableCell>
-                      <TableCell className="font-semibold">{herbacea.peso_seco.toFixed(2)}</TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {(herbacea.peso_seco / herbacea.peso_fresco).toFixed(3)}
-                      </TableCell>
-                      <TableCell>
-                        {herbacea.cobertura_porcentaje !== null
-                          ? `${herbacea.cobertura_porcentaje.toFixed(1)}%`
-                          : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {herbacea.biomasa_por_hectarea
-                          ? `${herbacea.biomasa_por_hectarea.toFixed(2)} kg/ha`
-                          : 'N/A'}
-                      </TableCell>
-                      <TableCell className="max-w-xs truncate">
-                        {herbacea.observaciones || '-'}
-                      </TableCell>
+                      <TableCell>{herbacea.n_individuos || 'N/A'}</TableCell>
+                      <TableCell>{herbacea.altura_promedio?.toFixed(2) || 'N/A'}</TableCell>
+                      <TableCell>{herbacea.biomasa_seca?.toFixed(3) || 'N/A'}</TableCell>
+                      <TableCell>{herbacea.biomasa_01ha?.toFixed(2) || 'N/A'}</TableCell>
+                      <TableCell className="font-semibold">{herbacea.carbono?.toFixed(2) || 'N/A'}</TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleEliminar(herbacea.id, herbacea.cuadrante_numero)}
-                          className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => handleEliminar(herbacea.id, herbacea.tipo_agrupacion)}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-4 w-4 text-red-600" />
                         </Button>
                       </TableCell>
                     </TableRow>

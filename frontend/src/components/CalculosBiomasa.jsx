@@ -24,12 +24,14 @@ import {
   BarChart3,
   Gem,
   Info,
-  Loader2
+  Loader2,
+  Trash2
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 const CalculosBiomasa = ({ parcelaId }) => {
   const [calculos, setCalculos] = useState([])
+  const [calculoSeleccionado, setCalculoSeleccionado] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [ejecutando, setEjecutando] = useState(false)
@@ -47,14 +49,56 @@ const CalculosBiomasa = ({ parcelaId }) => {
   const cargarCalculos = async () => {
     try {
       setLoading(true)
-      const data = await getCalculosParcela(parcelaId)
+
+      const endpoint = `/api/v1/calculos/parcela/${parcelaId}`
+
+      const response = await fetch(endpoint)
+      if (!response.ok) {
+        throw new Error('Error al cargar cálculos')
+      }
+
+      const data = await response.json()
       setCalculos(data)
+
+      // Seleccionar el más reciente por defecto
+      if (data.length > 0 && !calculoSeleccionado) {
+        setCalculoSeleccionado(data[0])
+      }
+
       setError(null)
     } catch (err) {
       console.error('Error al cargar cálculos:', err)
       setError('Error al cargar los cálculos de biomasa')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleEliminarCalculo = async (calculoId) => {
+    if (!confirm('¿Está seguro de eliminar este cálculo? Esta acción no se puede deshacer.')) {
+      return
+    }
+
+    try {
+      const response = await fetch(`/api/v1/calculos/${calculoId}`, {
+        method: 'DELETE'
+      })
+
+      if (!response.ok) {
+        throw new Error('Error al eliminar cálculo')
+      }
+
+      // Si el cálculo eliminado era el seleccionado, seleccionar otro
+      if (calculoSeleccionado?.id === calculoId) {
+        const calculosRestantes = calculos.filter(c => c.id !== calculoId)
+        setCalculoSeleccionado(calculosRestantes.length > 0 ? calculosRestantes[0] : null)
+      }
+
+      await cargarCalculos()
+      toast.success('Cálculo eliminado exitosamente')
+    } catch (err) {
+      console.error('Error al eliminar cálculo:', err)
+      toast.error('Error al eliminar el cálculo')
     }
   }
 
@@ -83,7 +127,7 @@ const CalculosBiomasa = ({ parcelaId }) => {
         factorCarbono
       )
 
-      await cargarCalculos()
+      const nuevosCalculos = await cargarCalculos()
       setMostrarFormulario(false)
       toast.success('Cálculo ejecutado exitosamente')
     } catch (err) {
@@ -94,7 +138,7 @@ const CalculosBiomasa = ({ parcelaId }) => {
     }
   }
 
-  const calculoMasReciente = calculos.length > 0 ? calculos[0] : null
+  const calculoMostrar = calculoSeleccionado || (calculos.length > 0 ? calculos[0] : null)
 
   if (loading) {
     return (
@@ -272,15 +316,17 @@ const CalculosBiomasa = ({ parcelaId }) => {
         </Card>
       )}
 
-      {/* Resultado Más Reciente */}
-      {calculoMasReciente && (
+      {/* Resultado Seleccionado */}
+      {calculoMostrar && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold">Resultado Más Reciente</h3>
+            <h3 className="text-lg font-semibold">
+              {calculoMostrar.id === calculos[0]?.id ? 'Resultado Más Reciente' : 'Resultado Seleccionado'}
+            </h3>
             <div className="flex gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline">{calculoMasReciente.modelo_alometrico.toUpperCase()}</Badge>
-              <Badge variant="outline">Factor C: {calculoMasReciente.factor_carbono}</Badge>
-              <Badge variant="outline">{new Date(calculoMasReciente.created_at).toLocaleDateString('es-CO')}</Badge>
+              <Badge variant="outline">{calculoMostrar.modelo_alometrico.toUpperCase()}</Badge>
+              <Badge variant="outline">Factor C: {calculoMostrar.factor_carbono}</Badge>
+              <Badge variant="outline">{new Date(calculoMostrar.created_at).toLocaleDateString('es-CO')}</Badge>
             </div>
           </div>
 
@@ -293,7 +339,7 @@ const CalculosBiomasa = ({ parcelaId }) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{calculoMasReciente.biomasa_aerea.toFixed(2)}</div>
+                <div className="text-3xl font-bold">{calculoMostrar.biomasa_aerea.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground mt-1">toneladas (Árboles)</p>
               </CardContent>
             </Card>
@@ -306,7 +352,7 @@ const CalculosBiomasa = ({ parcelaId }) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{calculoMasReciente.biomasa_subterranea.toFixed(2)}</div>
+                <div className="text-3xl font-bold">{calculoMostrar.biomasa_subterranea.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground mt-1">toneladas (Raíces)</p>
               </CardContent>
             </Card>
@@ -319,7 +365,7 @@ const CalculosBiomasa = ({ parcelaId }) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{calculoMasReciente.necromasa.toFixed(2)}</div>
+                <div className="text-3xl font-bold">{calculoMostrar.necromasa.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground mt-1">toneladas (Biomasa Muerta)</p>
               </CardContent>
             </Card>
@@ -332,7 +378,7 @@ const CalculosBiomasa = ({ parcelaId }) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{calculoMasReciente.herbaceas.toFixed(2)}</div>
+                <div className="text-3xl font-bold">{calculoMostrar.herbaceas.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground mt-1">toneladas (Vegetación Herbácea)</p>
               </CardContent>
             </Card>
@@ -345,7 +391,7 @@ const CalculosBiomasa = ({ parcelaId }) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">{calculoMasReciente.biomasa_total.toFixed(2)}</div>
+                <div className="text-3xl font-bold">{calculoMostrar.biomasa_total.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground mt-1">toneladas (0.1 ha)</p>
               </CardContent>
             </Card>
@@ -358,8 +404,8 @@ const CalculosBiomasa = ({ parcelaId }) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-primary">{calculoMasReciente.carbono_total.toFixed(2)}</div>
-                <p className="text-xs text-muted-foreground mt-1">t C • {(calculoMasReciente.carbono_total * 10).toFixed(2)} t C/ha</p>
+                <div className="text-3xl font-bold text-primary">{calculoMostrar.carbono_total.toFixed(2)}</div>
+                <p className="text-xs text-muted-foreground mt-1">t C • {(calculoMostrar.carbono_total * 10).toFixed(2)} t C/ha</p>
               </CardContent>
             </Card>
           </div>
@@ -369,7 +415,7 @@ const CalculosBiomasa = ({ parcelaId }) => {
       <Separator />
 
       {/* Historial de Cálculos */}
-      {calculos.length > 1 ? (
+      {calculos.length > 0 && (
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Historial de Cálculos ({calculos.length})</h3>
           <Card>
@@ -388,11 +434,20 @@ const CalculosBiomasa = ({ parcelaId }) => {
                       <TableHead>B. Total (t)</TableHead>
                       <TableHead>Carbono (t C)</TableHead>
                       <TableHead>t C/ha</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {calculos.map(calc => (
-                      <TableRow key={calc.id}>
+                      <TableRow
+                        key={calc.id}
+                        onClick={() => setCalculoSeleccionado(calc)}
+                        className={`cursor-pointer transition-colors ${
+                          calculoMostrar?.id === calc.id
+                            ? 'bg-primary/10 hover:bg-primary/15'
+                            : 'hover:bg-muted/50'
+                        }`}
+                      >
                         <TableCell className="text-xs">
                           {new Date(calc.created_at).toLocaleDateString('es-CO')}
                         </TableCell>
@@ -411,6 +466,16 @@ const CalculosBiomasa = ({ parcelaId }) => {
                         <TableCell className="font-bold text-primary">
                           {(calc.carbono_total * 10).toFixed(2)}
                         </TableCell>
+                        <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEliminarCalculo(calc.id)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -419,7 +484,9 @@ const CalculosBiomasa = ({ parcelaId }) => {
             </CardContent>
           </Card>
         </div>
-      ) : calculos.length === 0 ? (
+      )}
+
+      {calculos.length === 0 && (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Calculator className="h-12 w-12 text-muted-foreground mb-4" />
@@ -452,7 +519,7 @@ const CalculosBiomasa = ({ parcelaId }) => {
             </p>
           </CardContent>
         </Card>
-      ) : null}
+      )}
     </div>
   )
 }

@@ -22,8 +22,15 @@ class ArbolBase(BaseModel):
     codigo: Optional[str] = Field(None, max_length=50)
     dap: float = Field(..., ge=10.0, description="DAP en cm (≥ 10 cm)")
     altura: Optional[float] = Field(None, ge=0, description="Altura total en metros")
+
+    # Coordenadas GPS del árbol
+    latitud: Optional[float] = Field(None, description="Latitud GPS del árbol")
+    longitud: Optional[float] = Field(None, description="Longitud GPS del árbol")
+
+    # DEPRECADO - mantener para compatibilidad
     posicion_x: Optional[float] = None
     posicion_y: Optional[float] = None
+
     forma_fuste: Optional[str] = Field(None, max_length=50)
     estado_sanitario: Optional[str] = Field(None, max_length=100)
     fecha_medicion: Optional[date] = None
@@ -41,6 +48,8 @@ class ArbolUpdate(BaseModel):
     codigo: Optional[str] = None
     dap: Optional[float] = Field(None, ge=10.0)
     altura: Optional[float] = None
+    latitud: Optional[float] = None
+    longitud: Optional[float] = None
     posicion_x: Optional[float] = None
     posicion_y: Optional[float] = None
     forma_fuste: Optional[str] = None
@@ -98,35 +107,16 @@ def crear_arbol(
     arbol: ArbolCreate,
     db: Session = Depends(get_db)
 ):
-    """Registra un nuevo árbol en una parcela"""
+    """
+    Registra un nuevo árbol en una parcela.
+    La numeración es automática e incremental por subparcela/parcela.
+    """
     try:
         service = ArbolService(db)
 
-        # Verificar que no exista otro árbol con el mismo número
-        if arbol.subparcela_id:
-            # Si hay subparcela, verificar duplicados dentro de la subparcela
-            existe = db.query(Arbol).filter(
-                Arbol.subparcela_id == arbol.subparcela_id,
-                Arbol.numero_arbol == arbol.numero_arbol
-            ).first()
-
-            if existe:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Ya existe un árbol número {arbol.numero_arbol} en esta subparcela"
-                )
-        else:
-            # Si no hay subparcela, verificar duplicados dentro de la parcela
-            existe = db.query(Arbol).filter(
-                Arbol.parcela_id == arbol.parcela_id,
-                Arbol.numero_arbol == arbol.numero_arbol
-            ).first()
-
-            if existe:
-                raise HTTPException(
-                    status_code=400,
-                    detail=f"Ya existe un árbol número {arbol.numero_arbol} en esta parcela"
-                )
+        # La numeración es automática - el frontend ya calcula el siguiente número
+        # No verificamos duplicados porque confiamos en la lógica del frontend
+        # que calcula: max(numero_arbol) + 1
 
         nuevo_arbol = Arbol(**arbol.model_dump())
         db.add(nuevo_arbol)

@@ -34,16 +34,26 @@ const DetalleParcela = ({ codigo, parcelaId, onVolver }) => {
   const [error, setError] = useState(null)
   const [subparcelaSeleccionada, setSubparcelaSeleccionada] = useState(null)
   const [tipoGestionSubparcela, setTipoGestionSubparcela] = useState(null)
+  const [loadingSubparcela, setLoadingSubparcela] = useState(false)
 
   useEffect(() => {
-    cargarParcela()
+    inicializarPagina()
   }, [codigo, parcelaId])
 
-  const cargarParcela = async () => {
+  // Sincronizar tab activa con los parámetros de la URL
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab')
+    if (tabFromUrl && tabFromUrl !== tabActiva) {
+      setTabActiva(tabFromUrl)
+    }
+  }, [searchParams])
+
+  const inicializarPagina = async () => {
     try {
       setLoading(true)
-      const parcelas = await fetchParcelas()
 
+      // Cargar parcela
+      const parcelas = await fetchParcelas()
       let parcelaEncontrada
       if (codigo) {
         parcelaEncontrada = parcelas.find(p => p.codigo === codigo)
@@ -58,6 +68,12 @@ const DetalleParcela = ({ codigo, parcelaId, onVolver }) => {
 
       setParcela(parcelaEncontrada)
       setError(null)
+
+      // Si hay subparcela en URL, cargarla
+      const subparcelaIdFromUrl = searchParams.get('subparcela')
+      if (subparcelaIdFromUrl) {
+        await cargarSubparcelaDesdeUrl(parseInt(subparcelaIdFromUrl))
+      }
     } catch (err) {
       console.error('Error al cargar parcela:', err)
       setError('Error al cargar la información de la parcela')
@@ -66,20 +82,37 @@ const DetalleParcela = ({ codigo, parcelaId, onVolver }) => {
     }
   }
 
+  const cargarSubparcelaDesdeUrl = async (subparcelaId) => {
+    try {
+      setLoadingSubparcela(true)
+      const response = await fetch(`/api/v1/subparcelas/${subparcelaId}`)
+      if (!response.ok) {
+        console.error('Error al cargar subparcela desde URL')
+        return
+      }
+      const subparcela = await response.json()
+      setSubparcelaSeleccionada(subparcela)
+    } catch (err) {
+      console.error('Error al cargar subparcela:', err)
+    } finally {
+      setLoadingSubparcela(false)
+    }
+  }
+
   const handleGestionarDatosSubparcela = (subparcela, tipo) => {
     setSubparcelaSeleccionada(subparcela)
     setTipoGestionSubparcela(tipo)
 
-    // Cambiar a la tab correspondiente
+    // Cambiar a la tab correspondiente e incluir subparcela en URL
     if (tipo === 'arboles') {
       setTabActiva('arboles')
-      setSearchParams({ tab: 'arboles' })
+      setSearchParams({ tab: 'arboles', subparcela: subparcela.id })
     } else if (tipo === 'necromasa') {
       setTabActiva('necromasa')
-      setSearchParams({ tab: 'necromasa' })
+      setSearchParams({ tab: 'necromasa', subparcela: subparcela.id })
     } else if (tipo === 'herbaceas') {
       setTabActiva('herbaceas')
-      setSearchParams({ tab: 'herbaceas' })
+      setSearchParams({ tab: 'herbaceas', subparcela: subparcela.id })
     }
   }
 
@@ -90,15 +123,22 @@ const DetalleParcela = ({ codigo, parcelaId, onVolver }) => {
     setSearchParams({ tab: 'subparcelas' })
   }
 
-  const tabs = [
+  // Tabs base de la parcela
+  const tabsBase = [
     { id: 'info', label: 'Información General', icon: Info },
     { id: 'subparcelas', label: 'Subparcelas', icon: Square },
-    { id: 'arboles', label: 'Árboles', icon: TreeDeciduous },
-    { id: 'necromasa', label: 'Necromasa', icon: Leaf },
-    { id: 'herbaceas', label: 'Herbáceas', icon: Sprout },
     { id: 'calculos', label: 'Cálculos de Biomasa', icon: Calculator },
     { id: 'satelital', label: 'Análisis Satelital', icon: Satellite }
   ]
+
+  // Tabs adicionales cuando hay una subparcela seleccionada
+  const tabsSubparcela = subparcelaSeleccionada ? [
+    { id: 'arboles', label: `Árboles (${subparcelaSeleccionada.codigo})`, icon: TreeDeciduous },
+    { id: 'necromasa', label: `Necromasa (${subparcelaSeleccionada.codigo})`, icon: Leaf },
+    { id: 'herbaceas', label: `Herbáceas (${subparcelaSeleccionada.codigo})`, icon: Sprout }
+  ] : []
+
+  const tabs = [...tabsBase, ...tabsSubparcela]
 
   if (loading) {
     return (
@@ -163,7 +203,12 @@ const DetalleParcela = ({ codigo, parcelaId, onVolver }) => {
                 key={tab.id}
                 onClick={() => {
                   setTabActiva(tab.id)
-                  setSearchParams({ tab: tab.id })
+                  // Si es un tab de subparcela, incluir el ID en la URL
+                  if (['arboles', 'necromasa', 'herbaceas'].includes(tab.id) && subparcelaSeleccionada) {
+                    setSearchParams({ tab: tab.id, subparcela: subparcelaSeleccionada.id })
+                  } else {
+                    setSearchParams({ tab: tab.id })
+                  }
                 }}
                 className={`
                   flex items-center gap-2 px-4 py-3 min-w-fit whitespace-nowrap
@@ -390,7 +435,17 @@ const DetalleParcela = ({ codigo, parcelaId, onVolver }) => {
         )}
 
         {tabActiva === 'calculos' && (
-          <CalculosBiomasa parcelaId={parcela.id} />
+          <div className="space-y-4">
+            <Alert>
+              <Calculator className="h-4 w-4" />
+              <AlertDescription>
+                Los cálculos de biomasa y carbono se realizan para toda la parcela (0.1 hectáreas = 1000 m²)
+              </AlertDescription>
+            </Alert>
+            <CalculosBiomasa
+              parcelaId={parcela.id}
+            />
+          </div>
         )}
 
         {tabActiva === 'satelital' && (

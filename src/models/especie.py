@@ -25,6 +25,7 @@ class Especie(Base):
     descripcion = Column(Text)
     usos = Column(Text)
     distribucion = Column(Text)
+    observaciones = Column(Text)
 
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())

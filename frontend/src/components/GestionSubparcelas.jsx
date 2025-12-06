@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Plus, Square, Trash2, AlertCircle, MapPin, Edit, TreeDeciduous, Leaf, Sprout } from 'lucide-react'
+import { Plus, Square, Trash2, AlertCircle, MapPin, Edit, TreeDeciduous, Leaf, Sprout, Calculator } from 'lucide-react'
 import { toast } from 'sonner'
 
 function GestionSubparcelas({ parcelaId, parcela, onGestionarDatos }) {
@@ -400,12 +400,11 @@ function GestionSubparcelas({ parcelaId, parcela, onGestionarDatos }) {
                     Centro: {subparcela.latitud.toFixed(6)}, {subparcela.longitud.toFixed(6)}
                   </p>
 
-                  <div className="flex gap-2 mt-3">
+                  <div className="grid grid-cols-2 gap-2 mt-3">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => abrirGestionDatos(subparcela, 'arboles')}
-                      className="flex-1"
                     >
                       <TreeDeciduous className="h-4 w-4 mr-2" />
                       Árboles
@@ -414,7 +413,6 @@ function GestionSubparcelas({ parcelaId, parcela, onGestionarDatos }) {
                       variant="outline"
                       size="sm"
                       onClick={() => abrirGestionDatos(subparcela, 'necromasa')}
-                      className="flex-1"
                     >
                       <Leaf className="h-4 w-4 mr-2" />
                       Necromasa
@@ -423,7 +421,6 @@ function GestionSubparcelas({ parcelaId, parcela, onGestionarDatos }) {
                       variant="outline"
                       size="sm"
                       onClick={() => abrirGestionDatos(subparcela, 'herbaceas')}
-                      className="flex-1"
                     >
                       <Sprout className="h-4 w-4 mr-2" />
                       Herbáceas

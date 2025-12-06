@@ -24,7 +24,11 @@ class Arbol(Base):
     dap = Column(Float, nullable=False)  # Diámetro a la Altura del Pecho (cm) - ≥ 10 cm
     altura = Column(Float)  # Altura total (metros)
 
-    # Ubicación dentro de la parcela
+    # Ubicación GPS del árbol (coordenadas exactas)
+    latitud = Column(Float)  # Latitud GPS del árbol
+    longitud = Column(Float)  # Longitud GPS del árbol
+
+    # DEPRECADO - mantener para compatibilidad
     posicion_x = Column(Float)  # Metros desde un punto de referencia
     posicion_y = Column(Float)
 
@@ -62,6 +66,41 @@ class Arbol(Base):
             radio_cm = self.dap / 2
             area_cm2 = math.pi * (radio_cm ** 2)
             return area_cm2 / 10000  # Convertir a m²
+        return None
+
+    @property
+    def biomasa_aerea(self):
+        """
+        Calcula la biomasa aérea (AGB) del árbol en kg
+        Fórmula alométrica (Chave et al.): AGB = 0.0673 × (ρ × D² × H)^0.976
+
+        Requiere:
+        - DAP (D) en cm
+        - Altura (H) en m
+        - Densidad de madera (ρ) en g/cm³ desde la especie
+        """
+        if not all([self.dap, self.altura, self.especie, self.especie.densidad_madera]):
+            return None
+
+        # Extraer valores
+        D = self.dap  # cm
+        H = self.altura  # m
+        rho = self.especie.densidad_madera  # g/cm³
+
+        # Aplicar fórmula: AGB = 0.0673 × (ρ × D² × H)^0.976
+        agb = 0.0673 * ((rho * (D ** 2) * H) ** 0.976)
+
+        return agb  # kg
+
+    @property
+    def carbono_aereo(self):
+        """
+        Calcula el carbono almacenado en biomasa aérea (kg)
+        Usa el factor de carbono de la especie (default 0.47)
+        """
+        if self.biomasa_aerea and self.especie:
+            factor = self.especie.factor_carbono or 0.47
+            return self.biomasa_aerea * factor
         return None
 
     def validar_dap(self):

@@ -36,22 +36,39 @@ class ZonaCreate(BaseModel):
 
 
 @router.get("/zonas", summary="Listar zonas disponibles")
-def listar_zonas(db: Session = Depends(get_db)):
+def listar_zonas(
+    solo_nombres: bool = Query(False, description="Retorna solo los nombres si es True"),
+    db: Session = Depends(get_db)
+):
     """
     Obtiene la lista de todas las zonas desde la tabla de zonas.
 
     Las zonas son agrupaciones lógicas que se crean independientemente
     y pueden existir sin puntos de referencia o parcelas asociadas.
 
-    Retorna un array de nombres de zonas únicas ordenadas alfabéticamente.
+    - **solo_nombres**: Si es True, retorna solo un array de nombres.
+                        Si es False, retorna objetos completos con id, nombre, descripcion.
+
+    Por defecto retorna objetos completos para permitir operaciones de gestión.
     """
     # Obtener todas las zonas desde la tabla zonas
-    zonas = db.query(Zona.nombre).order_by(Zona.nombre).all()
+    zonas = db.query(Zona).order_by(Zona.nombre).all()
 
-    # Extraer solo los nombres
-    nombres_zonas = [z[0] for z in zonas]
+    # Si se solicita solo nombres, retornar array simple
+    if solo_nombres:
+        return [z.nombre for z in zonas]
 
-    return nombres_zonas
+    # Retornar objetos completos
+    return [
+        {
+            "id": z.id,
+            "nombre": z.nombre,
+            "descripcion": z.descripcion,
+            "created_at": z.created_at,
+            "updated_at": z.updated_at
+        }
+        for z in zonas
+    ]
 
 
 @router.get("/", summary="Obtener puntos de referencia")

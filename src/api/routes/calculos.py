@@ -160,6 +160,26 @@ def obtener_calculos_parcela(
     return [CalculoResponse.from_orm(c) for c in calculos]
 
 
+@router.get("/subparcela/{subparcela_id}", response_model=list[CalculoResponse])
+def obtener_calculos_subparcela(
+    subparcela_id: int,
+    db: Session = Depends(get_db)
+):
+    """Obtiene todos los cálculos de una subparcela ordenados por fecha (más reciente primero)"""
+    # Por ahora, las subparcelas usan los cálculos de la parcela principal
+    # ya que los cálculos se hacen a nivel de parcela completa
+    from src.models.subparcela import Subparcela
+
+    subparcela = db.query(Subparcela).filter(Subparcela.id == subparcela_id).first()
+    if not subparcela:
+        raise HTTPException(status_code=404, detail="Subparcela no encontrada")
+
+    calculos = db.query(CalculoBiomasa).filter(
+        CalculoBiomasa.parcela_id == subparcela.parcela_id
+    ).order_by(CalculoBiomasa.created_at.desc()).all()
+    return [CalculoResponse.from_orm(c) for c in calculos]
+
+
 @router.get("/{calculo_id}", response_model=CalculoResponse)
 def obtener_calculo(
     calculo_id: int,
@@ -170,3 +190,18 @@ def obtener_calculo(
     if not calculo:
         raise HTTPException(status_code=404, detail="Cálculo no encontrado")
     return CalculoResponse.from_orm(calculo)
+
+
+@router.delete("/{calculo_id}", status_code=204)
+def eliminar_calculo(
+    calculo_id: int,
+    db: Session = Depends(get_db)
+):
+    """Elimina un cálculo de biomasa"""
+    calculo = db.query(CalculoBiomasa).filter(CalculoBiomasa.id == calculo_id).first()
+    if not calculo:
+        raise HTTPException(status_code=404, detail="Cálculo no encontrado")
+
+    db.delete(calculo)
+    db.commit()
+    return None

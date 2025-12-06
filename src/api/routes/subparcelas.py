@@ -205,6 +205,39 @@ def listar_subparcelas_parcela(
     ]
 
 
+@router.get("/{subparcela_id}", summary="Obtener subparcela por ID")
+def obtener_subparcela(
+    subparcela_id: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene una subparcela específica por su ID.
+    """
+    subparcela = db.query(Subparcela).filter(Subparcela.id == subparcela_id).first()
+
+    if not subparcela:
+        raise HTTPException(status_code=404, detail="Subparcela no encontrada")
+
+    return {
+        "id": subparcela.id,
+        "codigo": subparcela.codigo,
+        "nombre": subparcela.nombre,
+        "vertice_origen": subparcela.vertice_origen,
+        "latitud": subparcela.latitud,
+        "longitud": subparcela.longitud,
+        "vertices": [
+            [subparcela.vertice1_lat, subparcela.vertice1_lon],
+            [subparcela.vertice2_lat, subparcela.vertice2_lon],
+            [subparcela.vertice3_lat, subparcela.vertice3_lon],
+            [subparcela.vertice4_lat, subparcela.vertice4_lon],
+        ],
+        "proposito": subparcela.proposito,
+        "estado": subparcela.estado,
+        "observaciones": subparcela.observaciones,
+        "created_at": subparcela.created_at,
+    }
+
+
 @router.post("/", summary="Crear subparcela")
 def crear_subparcela(
     subparcela: SubparcelaCreate,

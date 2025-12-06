@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Map, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { createZona } from '../services/api'
 
 function FormularioNuevaZona({ onZonaCreada, onClose }) {
   const [nombreZona, setNombreZona] = useState('')
@@ -23,23 +24,10 @@ function FormularioNuevaZona({ onZonaCreada, onClose }) {
       setLoading(true)
 
       // Crear la zona en la base de datos
-      const response = await fetch('http://localhost:8000/api/v1/puntos-referencia/zonas', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          nombre: nombreZona.trim(),
-          descripcion: null
-        })
+      const zonaCreada = await createZona({
+        nombre: nombreZona.trim(),
+        descripcion: null
       })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Error al crear la zona')
-      }
-
-      const zonaCreada = await response.json()
 
       toast.success(`Zona "${zonaCreada.nombre}" creada exitosamente`)
       toast.info('Ahora puedes agregar parcelas y puntos de referencia a esta zona', { duration: 5000 })

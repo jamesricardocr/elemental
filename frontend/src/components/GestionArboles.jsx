@@ -37,18 +37,19 @@ const GestionArboles = ({ subparcelaId, subparcela, parcelaId }) => {
   const [mostrarFormulario, setMostrarFormulario] = useState(false)
 
   const [nuevoArbol, setNuevoArbol] = useState({
-    numero: '',
     dap: '',
     altura: '',
     especie_id: '',
-    posicion_x: '',
-    posicion_y: '',
-    estado_sanitario: 'bueno',
+    latitud: '',
+    longitud: '',
+    estado_sanitario: 'sano',
     observaciones: ''
   })
 
   useEffect(() => {
-    cargarDatos()
+    if (parcelaId) {
+      cargarDatos()
+    }
   }, [subparcelaId, parcelaId])
 
   const cargarDatos = async () => {
@@ -92,7 +93,7 @@ const GestionArboles = ({ subparcelaId, subparcela, parcelaId }) => {
   }
 
   const validarFormulario = () => {
-    if (!nuevoArbol.numero || !nuevoArbol.dap || !nuevoArbol.altura || !nuevoArbol.especie_id) {
+    if (!nuevoArbol.dap || !nuevoArbol.altura || !nuevoArbol.especie_id) {
       toast.error('Por favor complete todos los campos obligatorios')
       return false
     }
@@ -120,15 +121,21 @@ const GestionArboles = ({ subparcelaId, subparcela, parcelaId }) => {
     }
 
     try {
+      // Calcular el siguiente número automáticamente
+      const maxNumero = arboles.length > 0
+        ? Math.max(...arboles.map(a => a.numero_arbol || 0))
+        : 0
+      const siguienteNumero = maxNumero + 1
+
       const arbolData = {
         parcela_id: parcelaId,
         subparcela_id: subparcelaId || null,
-        numero_arbol: parseInt(nuevoArbol.numero),
+        numero_arbol: siguienteNumero,
         dap: parseFloat(nuevoArbol.dap),
         altura: parseFloat(nuevoArbol.altura),
         especie_id: parseInt(nuevoArbol.especie_id),
-        posicion_x: nuevoArbol.posicion_x ? parseFloat(nuevoArbol.posicion_x) : null,
-        posicion_y: nuevoArbol.posicion_y ? parseFloat(nuevoArbol.posicion_y) : null,
+        latitud: nuevoArbol.latitud ? parseFloat(nuevoArbol.latitud) : null,
+        longitud: nuevoArbol.longitud ? parseFloat(nuevoArbol.longitud) : null,
         estado_sanitario: nuevoArbol.estado_sanitario,
         observaciones: nuevoArbol.observaciones || null
       }
@@ -136,19 +143,18 @@ const GestionArboles = ({ subparcelaId, subparcela, parcelaId }) => {
       await createArbol(arbolData)
 
       setNuevoArbol({
-        numero: '',
         dap: '',
         altura: '',
         especie_id: '',
-        posicion_x: '',
-        posicion_y: '',
-        estado_sanitario: 'bueno',
+        latitud: '',
+        longitud: '',
+        estado_sanitario: 'sano',
         observaciones: ''
       })
 
       setMostrarFormulario(false)
       await cargarDatos()
-      toast.success('Árbol registrado exitosamente')
+      toast.success(`Árbol #${siguienteNumero} registrado exitosamente`)
     } catch (err) {
       console.error('Error al crear árbol:', err)
       toast.error('Error al registrar el árbol: ' + (err.response?.data?.detail || err.message))
@@ -326,22 +332,13 @@ const GestionArboles = ({ subparcelaId, subparcela, parcelaId }) => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="numero">
-                    Número de Árbol <span className="text-destructive">*</span>
-                  </Label>
-                  <Input
-                    id="numero"
-                    type="number"
-                    name="numero"
-                    value={nuevoArbol.numero}
-                    onChange={handleInputChange}
-                    placeholder="Ej: 1"
-                    required
-                  />
-                </div>
+              <Alert className="bg-blue-50 dark:bg-blue-950 border-blue-200">
+                <AlertDescription className="text-sm text-blue-800 dark:text-blue-200">
+                  <strong>Número automático:</strong> Este árbol será el #{arboles.length > 0 ? Math.max(...arboles.map(a => a.numero_arbol || 0)) + 1 : 1}
+                </AlertDescription>
+              </Alert>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="especie_id">
                     Especie <span className="text-destructive">*</span>
@@ -400,28 +397,28 @@ const GestionArboles = ({ subparcelaId, subparcela, parcelaId }) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="posicion_x">Posición X (m)</Label>
+                  <Label htmlFor="latitud">Latitud (GPS)</Label>
                   <Input
-                    id="posicion_x"
+                    id="latitud"
                     type="number"
-                    step="0.1"
-                    name="posicion_x"
-                    value={nuevoArbol.posicion_x}
+                    step="0.0000001"
+                    name="latitud"
+                    value={nuevoArbol.latitud}
                     onChange={handleInputChange}
-                    placeholder="Opcional"
+                    placeholder="Ej: -3.123456"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="posicion_y">Posición Y (m)</Label>
+                  <Label htmlFor="longitud">Longitud (GPS)</Label>
                   <Input
-                    id="posicion_y"
+                    id="longitud"
                     type="number"
-                    step="0.1"
-                    name="posicion_y"
-                    value={nuevoArbol.posicion_y}
+                    step="0.0000001"
+                    name="longitud"
+                    value={nuevoArbol.longitud}
                     onChange={handleInputChange}
-                    placeholder="Opcional"
+                    placeholder="Ej: -69.987654"
                   />
                 </div>
 
@@ -435,10 +432,9 @@ const GestionArboles = ({ subparcelaId, subparcela, parcelaId }) => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="bueno">Bueno</SelectItem>
-                      <SelectItem value="regular">Regular</SelectItem>
-                      <SelectItem value="malo">Malo</SelectItem>
-                      <SelectItem value="muerto">Muerto</SelectItem>
+                      <SelectItem value="sano">Sano</SelectItem>
+                      <SelectItem value="inclinado">Inclinado</SelectItem>
+                      <SelectItem value="seco">Seco</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -489,7 +485,7 @@ const GestionArboles = ({ subparcelaId, subparcela, parcelaId }) => {
                     <TableHead>Especie</TableHead>
                     <TableHead>DAP (cm)</TableHead>
                     <TableHead>Altura (m)</TableHead>
-                    <TableHead>Posición</TableHead>
+                    <TableHead>Coordenadas GPS</TableHead>
                     <TableHead>Estado</TableHead>
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
@@ -499,7 +495,7 @@ const GestionArboles = ({ subparcelaId, subparcela, parcelaId }) => {
                     const especie = especies.find(e => e.id === arbol.especie_id)
                     return (
                       <TableRow key={arbol.id}>
-                        <TableCell className="font-semibold">#{arbol.numero}</TableCell>
+                        <TableCell className="font-semibold">#{arbol.numero_arbol}</TableCell>
                         <TableCell>
                           <div>
                             <div className="font-medium italic">{especie?.nombre_cientifico || 'N/A'}</div>
@@ -509,15 +505,15 @@ const GestionArboles = ({ subparcelaId, subparcela, parcelaId }) => {
                         <TableCell>{arbol.dap.toFixed(1)}</TableCell>
                         <TableCell>{arbol.altura.toFixed(1)}</TableCell>
                         <TableCell className="text-xs font-mono">
-                          {arbol.posicion_x && arbol.posicion_y
-                            ? `(${arbol.posicion_x.toFixed(1)}, ${arbol.posicion_y.toFixed(1)})`
+                          {arbol.latitud && arbol.longitud
+                            ? `${arbol.latitud.toFixed(6)}, ${arbol.longitud.toFixed(6)}`
                             : 'N/A'}
                         </TableCell>
                         <TableCell>
                           <Badge
                             variant={
-                              arbol.estado_sanitario === 'bueno' ? 'default' :
-                              arbol.estado_sanitario === 'regular' ? 'secondary' :
+                              arbol.estado_sanitario === 'sano' ? 'default' :
+                              arbol.estado_sanitario === 'inclinado' ? 'secondary' :
                               'destructive'
                             }
                           >

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { deleteParcela, getParcelaStats } from '../services/api'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -96,8 +96,8 @@ function TablaParcelas({ parcelas, onParcelaDeleted, onParcelaSelected, onVerDet
         </TableHeader>
         <TableBody>
           {parcelas.map(parcela => (
-            <>
-              <TableRow key={parcela.id} className="hover:bg-muted/50 transition-colors">
+            <Fragment key={parcela.id}>
+              <TableRow className="hover:bg-muted/50 transition-colors">
                 <TableCell>
                   <Button
                     variant="ghost"
@@ -165,7 +165,7 @@ function TablaParcelas({ parcelas, onParcelaDeleted, onParcelaSelected, onVerDet
               </TableRow>
 
               {expandedId === parcela.id && (
-                <TableRow>
+                <TableRow key={`${parcela.id}-expanded`}>
                   <TableCell colSpan={7} className="bg-muted/30 p-0">
                     <div className="p-6">
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -281,7 +281,7 @@ function TablaParcelas({ parcelas, onParcelaDeleted, onParcelaSelected, onVerDet
                   </TableCell>
                 </TableRow>
               )}
-            </>
+            </Fragment>
           ))}
         </TableBody>
       </Table>

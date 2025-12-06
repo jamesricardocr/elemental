@@ -190,11 +190,11 @@ class BiomasaCalculator:
 
         # Calcular biomasa según modelo
         if modelo == "chave_2014":
-            biomasa_kg = self.chave_2014(arbol.dap, arbol.altura_total, densidad)
+            biomasa_kg = self.chave_2014(arbol.dap, arbol.altura, densidad)
         elif modelo == "ipcc_2006":
             biomasa_kg = self.ipcc_2006(arbol.dap, densidad)
         elif modelo == "ideam":
-            biomasa_kg = self.ideam_colombia(arbol.dap, arbol.altura_total, densidad)
+            biomasa_kg = self.ideam_colombia(arbol.dap, arbol.altura, densidad)
         else:
             raise ValueError(f"Modelo '{modelo}' no reconocido")
 

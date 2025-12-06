@@ -113,7 +113,8 @@ export async function getResumenGeneral() {
 
 export async function getZonasReferencia() {
   try {
-    const response = await fetch(`${API_BASE_URL}/puntos-referencia/zonas`)
+    // Obtener solo nombres para mantener compatibilidad con código existente
+    const response = await fetch(`${API_BASE_URL}/puntos-referencia/zonas?solo_nombres=true`)
     if (!response.ok) throw new Error('Error fetching zonas')
     return await response.json()
   } catch (error) {
@@ -164,6 +165,49 @@ export async function deletePuntoReferencia(puntoId) {
   }
 
   return await response.json()
+}
+
+// ============= ZONAS =============
+export async function createZona(zonaData) {
+  const response = await fetch(`${API_BASE_URL}/puntos-referencia/zonas`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(zonaData)
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.detail || 'Error creating zona')
+  }
+
+  return await response.json()
+}
+
+export async function deleteZona(zonaId) {
+  const response = await fetch(`${API_BASE_URL}/puntos-referencia/zonas/${zonaId}`, {
+    method: 'DELETE'
+  })
+
+  if (!response.ok) {
+    const error = await response.json()
+    throw new Error(error.detail || 'Error deleting zona')
+  }
+
+  return await response.json()
+}
+
+export async function getZonasDetalladas() {
+  try {
+    // Obtener objetos completos con id, nombre, descripcion, etc.
+    const response = await fetch(`${API_BASE_URL}/puntos-referencia/zonas?solo_nombres=false`)
+    if (!response.ok) throw new Error('Error fetching zonas')
+    return await response.json()
+  } catch (error) {
+    console.error('API Error:', error)
+    return []
+  }
 }
 
 // ============= ESPECIES =============
