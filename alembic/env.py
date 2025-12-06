@@ -25,9 +25,9 @@ if config.config_file_name is not None:
 # Import Base and all models
 from config.database import Base
 from src.models import (
-    zona, punto_referencia, parcela, subparcela,
-    arbol, especie, necromasa, herbaceas,
-    calculo, calculo_satelital, usuario
+    Zona, Parcela, Subparcela,
+    Arbol, Especie, Necromasa, Herbaceas,
+    CalculoBiomasa, CalculoSatelital
 )
 
 # Set target metadata for 'autogenerate' support
