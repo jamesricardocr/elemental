@@ -100,7 +100,13 @@ jobs:
             ls -t backups/iap_database_backup_*.db 2>/dev/null | tail -n +11 | xargs -r rm
           fi
 
-          # Build y restart con Docker Compose PRODUCCIÓN
+          # Actualizar configuración de Nginx
+          echo "🔧 Actualizando configuración de Nginx..."
+          sudo cp config/nginx/elemental.jc2r.com.conf /etc/nginx/sites-available/elemental.jc2r.com
+          sudo nginx -t && sudo systemctl reload nginx
+          echo "✅ Nginx actualizado"
+
+          # Build y restart con Docker Compose PRODUCCIÓN (solo backend)
           docker compose -f docker-compose.prod.yml down
           docker compose -f docker-compose.prod.yml build --no-cache
           docker compose -f docker-compose.prod.yml up -d
@@ -113,12 +119,13 @@ jobs:
           echo "📊 Estado de contenedores:"
           docker compose -f docker-compose.prod.yml ps
 
-          # Ver logs
+          # Ver logs del backend
           echo "📋 Logs del backend:"
           docker compose -f docker-compose.prod.yml logs --tail=20 backend
 
-          echo "📋 Logs del frontend:"
-          docker compose -f docker-compose.prod.yml logs --tail=20 frontend
+          # Verificar Nginx
+          echo "📋 Verificando Nginx..."
+          curl -I http://localhost/ || echo "Nginx no responde en localhost"
 
           echo "✅ Deployment en modo PRODUCCIÓN completado"
         ENDSSH
