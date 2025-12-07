@@ -40,7 +40,6 @@ jobs:
           frontend/tailwind.config.js \
           frontend/postcss.config.js \
           frontend/jsconfig.json \
-          frontend/.env \
           frontend/Dockerfile \
           frontend/Dockerfile.prod \
           frontend/nginx.conf \
