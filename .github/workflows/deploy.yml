@@ -13,6 +13,27 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Create frontend .env with VITE variables
+      run: |
+        cat > frontend/.env << 'EOF'
+        VITE_GOOGLE_MAPS_API_KEY=AIzaSyBs2LGBZyfVdHUuAZlNJpF-SydBHAwdb_k
+        EOF
+
+    - name: Install frontend dependencies
+      working-directory: ./frontend
+      run: npm ci
+
+    - name: Build frontend
+      working-directory: ./frontend
+      run: npm run build
+
     - name: Setup SSH
       run: |
         mkdir -p ~/.ssh
@@ -25,26 +46,12 @@ jobs:
         # Crear directorios en el servidor
         ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
           ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} \
-          "mkdir -p /srv/Elemental/frontend"
+          "mkdir -p /srv/Elemental/frontend/dist"
 
-        # Copiar código fuente del frontend
-        rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
-          --exclude='node_modules' \
-          --exclude='dist' \
-          frontend/src \
-          frontend/public \
-          frontend/index.html \
-          frontend/package.json \
-          frontend/package-lock.json \
-          frontend/vite.config.js \
-          frontend/tailwind.config.js \
-          frontend/postcss.config.js \
-          frontend/jsconfig.json \
-          frontend/Dockerfile \
-          frontend/Dockerfile.prod \
-          frontend/nginx.conf \
-          frontend/.dockerignore \
-          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/srv/Elemental/frontend/
+        # Copiar frontend build (compilado en GitHub Actions)
+        rsync -avz --delete -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
+          frontend/dist/ \
+          ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/srv/Elemental/frontend/dist/
 
         # Copiar archivos del backend y configuración
         rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
@@ -79,19 +86,6 @@ jobs:
             # Mantener solo últimos 10 backups
             ls -t backups/iap_database_backup_*.db 2>/dev/null | tail -n +11 | xargs -r rm
           fi
-
-          # Build del frontend EN EL SERVIDOR (con acceso al .env)
-          echo "🔨 Construyendo frontend en servidor..."
-          cd /srv/Elemental/frontend
-
-          # El .env del frontend ya viene del rsync con VITE_GOOGLE_MAPS_API_KEY
-          # NO copiar el .env del backend que no tiene variables VITE_*
-
-          npm ci
-          npm run build
-          echo "✅ Frontend compilado con variables de entorno"
-
-          cd /srv/Elemental
 
           # Actualizar configuración de Nginx
           echo "🔧 Actualizando configuración de Nginx..."
