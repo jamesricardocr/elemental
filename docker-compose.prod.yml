@@ -1,0 +1,48 @@
+services:
+  backend:
+    build: .
+    container_name: elemental-backend
+    restart: always
+    ports:
+      - "8001:8000"
+    volumes:
+      # Solo montamos datos y database (NO código fuente)
+      - ./data:/app/data
+      - ./iap_database.db:/app/iap_database.db
+    environment:
+      - ENVIRONMENT=production
+      - PYTHONUNBUFFERED=1
+    env_file:
+      - .env
+    networks:
+      - elemental-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: elemental-frontend
+    restart: always
+    ports:
+      - "80:80"
+    networks:
+      - elemental-network
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+networks:
+  elemental-network:
+    driver: bridge

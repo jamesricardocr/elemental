@@ -61,6 +61,9 @@ jobs:
           frontend/postcss.config.js \
           frontend/jsconfig.json \
           frontend/Dockerfile \
+          frontend/Dockerfile.prod \
+          frontend/nginx.conf \
+          frontend/.dockerignore \
           ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/srv/Elemental/frontend/
 
         # Copiar archivos del backend y configuración
@@ -78,22 +81,44 @@ jobs:
           .env.example \
           Dockerfile \
           docker-compose.yml \
+          docker-compose.prod.yml \
           .dockerignore \
           ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }}:/srv/Elemental/
 
-    - name: Deploy with Docker
+    - name: Deploy with Docker (Production Mode)
       run: |
         ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
           ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'ENDSSH'
           cd /srv/Elemental
 
-          # Build y restart con Docker Compose
-          docker compose down
-          docker compose build --no-cache
-          docker compose up -d
+          # Backup de DB (seguridad, no se modifica)
+          if [ -f "iap_database.db" ]; then
+            mkdir -p backups
+            cp iap_database.db backups/iap_database_backup_$(date +%Y%m%d_%H%M%S).db
+            echo "✅ Backup de DB creado"
+            # Mantener solo últimos 10 backups
+            ls -t backups/iap_database_backup_*.db 2>/dev/null | tail -n +11 | xargs -r rm
+          fi
+
+          # Build y restart con Docker Compose PRODUCCIÓN
+          docker compose -f docker-compose.prod.yml down
+          docker compose -f docker-compose.prod.yml build --no-cache
+          docker compose -f docker-compose.prod.yml up -d
+
+          # Esperar a que servicios estén listos
+          echo "⏳ Esperando que servicios inicien..."
+          sleep 10
+
+          # Ver estado
+          echo "📊 Estado de contenedores:"
+          docker compose -f docker-compose.prod.yml ps
 
           # Ver logs
-          docker compose logs --tail=20
+          echo "📋 Logs del backend:"
+          docker compose -f docker-compose.prod.yml logs --tail=20 backend
 
-          echo "✅ Deployment completed successfully"
+          echo "📋 Logs del frontend:"
+          docker compose -f docker-compose.prod.yml logs --tail=20 frontend
+
+          echo "✅ Deployment en modo PRODUCCIÓN completado"
         ENDSSH
