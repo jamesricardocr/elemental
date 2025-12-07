@@ -40,6 +40,7 @@ jobs:
           frontend/tailwind.config.js \
           frontend/postcss.config.js \
           frontend/jsconfig.json \
+          frontend/.env \
           frontend/Dockerfile \
           frontend/Dockerfile.prod \
           frontend/nginx.conf \
@@ -84,11 +85,8 @@ jobs:
           echo "🔨 Construyendo frontend en servidor..."
           cd /srv/Elemental/frontend
 
-          # Verificar que existe .env con variables VITE_*
-          if [ -f "/srv/Elemental/.env" ]; then
-            # Copiar .env al directorio frontend para que Vite lo lea
-            cp /srv/Elemental/.env .env 2>/dev/null || true
-          fi
+          # El .env del frontend ya viene del rsync con VITE_GOOGLE_MAPS_API_KEY
+          # NO copiar el .env del backend que no tiene variables VITE_*
 
           npm ci
           npm run build
