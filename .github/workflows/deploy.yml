@@ -78,8 +78,15 @@ jobs:
           ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_HOST }} << 'ENDSSH'
           cd /srv/Elemental
 
+          # Crear base de datos si no existe
+          if [ ! -f "iap_database.db" ]; then
+            touch iap_database.db
+            chmod 666 iap_database.db
+            echo "✅ Base de datos creada (vacía)"
+          fi
+
           # Backup de DB (seguridad, no se modifica)
-          if [ -f "iap_database.db" ]; then
+          if [ -f "iap_database.db" ] && [ -s "iap_database.db" ]; then
             mkdir -p backups
             cp iap_database.db backups/iap_database_backup_$(date +%Y%m%d_%H%M%S).db
             echo "✅ Backup de DB creado"
