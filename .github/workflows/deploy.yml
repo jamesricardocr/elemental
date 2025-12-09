@@ -56,7 +56,6 @@ jobs:
         # Copiar archivos del backend y configuración
         rsync -avz -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no" \
           src \
-          config \
           migrations \
           scripts \
           data \
@@ -86,12 +85,6 @@ jobs:
             # Mantener solo últimos 10 backups
             ls -t backups/iap_database_backup_*.db 2>/dev/null | tail -n +11 | xargs -r rm
           fi
-
-          # Actualizar configuración de Nginx
-          echo "🔧 Actualizando configuración de Nginx..."
-          sudo cp config/nginx/elemental.jc2r.com.conf /etc/nginx/sites-available/elemental.jc2r.com
-          sudo nginx -t && sudo systemctl reload nginx
-          echo "✅ Nginx actualizado"
 
           # Build y restart con Docker Compose PRODUCCIÓN (solo backend)
           docker compose -f docker-compose.prod.yml down
