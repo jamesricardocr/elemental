@@ -16,6 +16,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar código
 COPY src ./src
+COPY config ./config
 COPY migrations ./migrations
 COPY init_db.py .
 COPY load_puntos_referencia.py .
