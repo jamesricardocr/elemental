@@ -100,6 +100,11 @@ class CalculoSatelitalSimple(BaseModel):
     fecha_inicio: date
     fecha_fin: date
     ndvi_promedio: Optional[float]
+    evi_promedio: Optional[float]
+    evi_min: Optional[float]
+    evi_max: Optional[float]
+    biomasa_aerea_estimada: Optional[float]
+    biomasa_por_hectarea: Optional[float]
     carbono_estimado: Optional[float]
     estado_procesamiento: Optional[str]
     created_at: datetime

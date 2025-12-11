@@ -572,7 +572,7 @@ const HistorialSatelital = ({ parcelaId, onNuevoAnalisis }) => {
                                   <Line
                                     type="monotone"
                                     dataKey="evi"
-                                    stroke="hsl(var(--primary))"
+                                    stroke="#14b8a6"
                                     strokeWidth={2}
                                     name="EVI"
                                     dot={{ r: 3 }}
